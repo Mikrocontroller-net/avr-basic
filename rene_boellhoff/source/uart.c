@@ -75,12 +75,12 @@
 // Initialisierung des UART auf 38400bd bei 16MHz
 void vUARTInit (void)
 {
-	UBRR0L = 32;  // 16MHz / (16*38.4kbd) = 26 -> 26-1 = 25 eff. Baudrate 38462bd
-	UBRR0H = 0;
+	UBRRL = 25;  // 16MHz / (16*38.4kbd) = 26 -> 26-1 = 25 eff. Baudrate 38462bd
+	UBRRH = 0;
 
-	UCSR0B |= (1 << RXEN0)  | (1 << TXEN0);			// sender & empfänger einschalten
-	UCSR0C |=                 (3 << UCSZ00); 		// uart mode
-  UCSR0B |= (1 << RXCIE0);										// uart interrupt einschalten
+	UCSRB |= (1 << RXEN)  | (1 << TXEN);			// sender & empfänger einschalten
+	UCSRC |= (1 << URSEL) | (3 << UCSZ0); 		// uart mode
+  UCSRB |= (1 << RXCIE);										// uart interrupt einschalten
 
 	DDRD  |= 1 << 1;													// tx-pin auf ausgang
 
@@ -101,8 +101,8 @@ void vUARTInit (void)
 // einzelnes Zeichen senden
 void vUARTSendChar (char cValue)
 {
-	while (!(UCSR0A & (1 << UDRE0)));
-	UDR0 = cValue;
+	while (!(UCSRA & (1 << UDRE)));
+	UDR = cValue;
 }
 
 // Ausgabe-Funktion für printf
@@ -217,9 +217,9 @@ void vUARTInputProcess (U8 ucData)
 #ifdef AVR
 
 // Empfangsinterrupt
-ISR (USART_RX_vect)
+ISR (USART_RXC_vect)
 {
-	U8 ucData = UDR0; 	// Daten holen
+	U8 ucData = UDR; 	// Daten holen
 
 	vUARTInputProcess (ucData);
 }
