@@ -15,7 +15,13 @@
 #include "ubasic_config.h"
 #include "ubasic_call.h"
 
-#include "usart.h"
+
+#if USE_AVR
+	#include "usart.h"
+#else
+	#include <string.h>
+	#include <stdio.h> 
+#endif
 
 #if UBASIC_CALL
 
@@ -30,17 +36,22 @@
 //------------------------------------------
 // ein paar Testfunktionen fuer call...
 void a(void) {
+#if USE_AVR
 	DDRB |= (1 << PB1);
 	PORTB |= (1 << PB1);
+#endif
 }
 
 void b(int p1) {
+#if USE_AVR
 	DDRB |= (1 << PB1);
 	if (p1) PORTB |= (1 << PB1); else PORTB &= ~(1 << PB1);
+#endif
 }
 
 int c(int p1) {
 	int r=0;	
+#if USE_AVR
 	ADMUX =  p1;
 	ADMUX |= (1<<REFS0);
 	ADCSRA = (1<<ADEN) | (1<<ADPS1) | (1<<ADPS0);
@@ -51,6 +62,8 @@ int c(int p1) {
 	while (ADCSRA & (1<<ADSC));
 	r = ADCW;
 	ADCSRA=0;
+
+#endif
 	return r;
 }
 
@@ -67,7 +80,7 @@ callfunct_t callfunct[] = {
 
 
 int call_statement(void) {
-	static char funct_name[MAX_NAME_LEN+1];
+	//static char funct_name[MAX_NAME_LEN+1];
 	uint8_t idx=0;
 
 	int p1=0;
@@ -78,23 +91,23 @@ int call_statement(void) {
     accept(TOKENIZER_LEFTPAREN);
 	// Funktionsname ermitteln
 	if(tokenizer_token() == TOKENIZER_STRING) {
-		tokenizer_string(funct_name, sizeof(funct_name));
-		DEBUG_PRINTF("funct_name: %s\n\r", funct_name);
+		//tokenizer_string(funct_name, sizeof(funct_name));
+		DEBUG_PRINTF("funct_name: %s\n\r", tokenizer_last_string_ptr());
 		tokenizer_next();
 	}
 	// Funktionsname in Tabelle suchen
-	while(strncasecmp(callfunct[idx].funct_name, funct_name, MAX_NAME_LEN) &&
+	while(strncasecmp(callfunct[idx].funct_name, tokenizer_last_string_ptr(), MAX_NAME_LEN) &&
 		  callfunct[idx].funct_name != 0)
     {
     	idx++;
     }
     // einen Tabelleneintrag gefunden!
     if (callfunct[idx].funct_name == 0) {
-    	DEBUG_PRINTF("funct_name: %s nicht gefunden!\n\r", funct_name);
+    	DEBUG_PRINTF("funct_name: %s nicht gefunden!\n\r", tokenizer_last_string_ptr());
     	tokenizer_error_print(current_linenum, UNKNOWN_CALL_FUNCT);
 		ubasic_break();
     } else {
-	    DEBUG_PRINTF("funct_name: %s hat Index: %i\n\r", funct_name, idx);
+	    DEBUG_PRINTF("funct_name: %s hat Index: %i\n\r", tokenizer_last_string_ptr(), idx);
 		// je nach Funktionstyp (3.Spalte in Funktionspointertabelle) 
 		// Parameterliste aufbauen und Funktion aufrufen
 		switch (callfunct[idx].typ){

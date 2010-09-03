@@ -35,6 +35,7 @@
 
 #if DEBUG
 	#define DEBUG_PRINTF(...)  usart_write(__VA_ARGS__)
+//	#define DEBUG_PRINTF(...)  printf(__VA_ARGS__)
 #else
 	#define DEBUG_PRINTF(...)
 #endif
@@ -44,6 +45,13 @@
 #include "tokenizer.h"
 #include "ubasic_config.h"
 
+#if !USE_AVR
+	#include <stdio.h>
+	#if UBASIC_RND
+		#include <time.h>
+	#endif
+#endif
+
 #if UBASIC_CALL
 	#include "ubasic_call.h"
 #endif
@@ -52,7 +60,9 @@
 	#include "ubasic_cvars.h"
 #endif
 
-#include "usart.h"
+#if USE_AVR
+	#include "usart.h"
+#endif
 
 #if AVR_EPEEK || AVR_EPOKE
 	#include <avr/eeprom.h>
@@ -68,9 +78,9 @@
 
 static char const *program_ptr;
 
-#if UBASIC_PRINT
-static char string[MAX_STRINGLEN];
-#endif
+//#if UBASIC_PRINT
+//static char string[MAX_STRINGLEN];
+//#endif
 
 static const char *gosub_stack[MAX_GOSUB_STACK_DEPTH];
 static int gosub_stack_ptr;
@@ -104,7 +114,7 @@ static uint8_t ended;
 int expr(void);
 static void line_statement(void);
 static void statement(void);
-#if AVR_RND
+#if UBASIC_RND && USE_AVR
 static long unsigned int rand31_next(void);
 #endif
 
@@ -165,9 +175,10 @@ factor(void)
   int r=0;
   #if AVR_IN || AVR_ADC || AVR_EPEEK 
   int adr;
-  char port, pin;
+  const char *port;
+  char pin;
   #endif
-  #if AVR_RND
+  #if UBASIC_RND
   int b;
   #endif
   
@@ -191,12 +202,16 @@ factor(void)
     accept(TOKENIZER_RIGHTPAREN);
     break;
   
-  #if AVR_RND
+  #if UBASIC_RND
   case TOKENIZER_RND:
     accept(TOKENIZER_RND);
     accept(TOKENIZER_LEFTPAREN);
-    b = expr();
-	r = rand31_next() % (b+1);
+   	b = expr();
+    #if USE_AVR
+		r = rand31_next() % (b+1);
+	#else
+		r = rand() % (b+1);
+	#endif
     accept(TOKENIZER_RIGHTPAREN);
     break;
   #endif
@@ -278,13 +293,13 @@ factor(void)
   case TOKENIZER_IN:
     accept(TOKENIZER_IN);
     accept(TOKENIZER_LEFTPAREN);
-	port=tokenizer_letter();
-	tokenizer_next();
+    accept(TOKENIZER_STRING);
+	port=tokenizer_last_string_ptr();
 	accept(TOKENIZER_COMMA);
 	pin=tokenizer_num();
 	tokenizer_next();
     accept(TOKENIZER_RIGHTPAREN);
-		switch (port) {
+		switch (*port) {
 		#if HAVE_PORTA
 		case 'a':
 		case 'A':
@@ -508,8 +523,7 @@ print_statement(void)
   do {
     DEBUG_PRINTF("Print loop\r\n");
     if(tokenizer_token() == TOKENIZER_STRING) {
-      tokenizer_string(string, sizeof(string));
-      PRINTF("%s", string);
+      PRINTF("%s", tokenizer_last_string_ptr());
       tokenizer_next();
     } else if(tokenizer_token() == TOKENIZER_COMMA) {
       PRINTF(" ");
@@ -518,7 +532,7 @@ print_statement(void)
       tokenizer_next();
     } else if(tokenizer_token() == TOKENIZER_VARIABLE  ||
     		  tokenizer_token() == TOKENIZER_LEFTPAREN ||
-	          #if AVR_RND
+	          #if UBASIC_RND
 			  tokenizer_token() == TOKENIZER_RND       ||
 			  #endif
 	          #if UBASIC_ABS
@@ -610,7 +624,7 @@ gosub_statement(void)
 	int linenum;
 	accept(TOKENIZER_GOSUB);
 	linenum = tokenizer_num();
-	accept(TOKENIZER_NUMBER);
+	//accept(TOKENIZER_NUMBER);
 	// es muss bis zum Zeilenende gelesen werden, um die Rueck-
 	// sprungzeile fuer return zu ermitteln
 	jump_to_next_linenum();
@@ -744,18 +758,21 @@ epoke_statement(void)
 static void
 dir_statement(void)
 {
-	char port, pin, val;
+	const char *port;
+	char pin, val;
+	
 	accept(TOKENIZER_DIR);
     accept(TOKENIZER_LEFTPAREN);
-	port=tokenizer_letter();
-	tokenizer_next();
+    accept(TOKENIZER_STRING);
+	port=tokenizer_last_string_ptr();
 	accept(TOKENIZER_COMMA);
 	pin=tokenizer_num();
 	tokenizer_next();
     accept(TOKENIZER_RIGHTPAREN);
     accept(TOKENIZER_EQ);
 	if (expr()) val=1; else val=0;
-	switch (port) {
+	//switch (port) {
+	switch (*port) {
 		#if HAVE_PORTA
 		case 'a':
 		case 'A':
@@ -781,7 +798,7 @@ dir_statement(void)
 			break;
 		#endif
 		default:
-			DEBUG_PRINTF("dir_statement: unknown port %c\r\n", port);
+			DEBUG_PRINTF("dir_statement: unknown port %c\r\n", *port);
 		    tokenizer_error_print(current_linenum, UNKNOWN_IO_PORT);
 			ubasic_break();
 	}
@@ -794,18 +811,20 @@ dir_statement(void)
 static void
 out_statement(void)
 {
-	char port, pin, val;
+	char const *port;
+	char pin, val;
+	
 	accept(TOKENIZER_OUT);
     accept(TOKENIZER_LEFTPAREN);
-	port=tokenizer_letter();
-	tokenizer_next();
+    accept(TOKENIZER_STRING);
+	port=tokenizer_last_string_ptr();
 	accept(TOKENIZER_COMMA);
 	pin=tokenizer_num();
 	tokenizer_next();
     accept(TOKENIZER_RIGHTPAREN);
     accept(TOKENIZER_EQ);
 	val = expr();
-	switch (port) {
+	switch (*port) {
 		#if HAVE_PORTA
 		case 'a':
 		case 'A':
@@ -854,11 +873,10 @@ wait_statement(void)
 #endif
 
 /*---------------------------------------------------------------------------*/
-#if AVR_RND
+#if UBASIC_RND
+#if USE_AVR
 long unsigned int seed = 0;
-static void
-srand_statement(void)
-{
+static void srand_statement(void) {
 	uint16_t *p = (uint16_t*) (RAMEND+1);
 	extern uint16_t __heap_start;
 	accept(TOKENIZER_SRND);
@@ -866,6 +884,15 @@ srand_statement(void)
 		seed ^= * (--p);
 	tokenizer_next();
 }
+#else
+static void srand_statement(void) {
+	time_t t;
+	accept(TOKENIZER_SRND);
+	time(&t);
+	srand((unsigned int)t);
+	tokenizer_next();
+}
+#endif
 #endif
 
 /*---------------------------------------------------------------------------*/
@@ -946,7 +973,7 @@ statement(void)
     break;
   #endif
   
-  #if AVR_RND
+  #if UBASIC_RND
   case TOKENIZER_SRND:
     srand_statement();
     break;
@@ -1012,7 +1039,7 @@ ubasic_get_variable(int varnum)
 /*---------------------------------------------------------------------------*/
 // Park-Miller "minimal standard" 31Bit pseudo-random generator
 // http://www.firstpr.com.au/dsp/rand31/
-#if AVR_RND
+#if UBASIC_RND && USE_AVR
 long unsigned int rand31_next(void)
 {
 	long unsigned int hi, lo;

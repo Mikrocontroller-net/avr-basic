@@ -83,7 +83,7 @@ enum {
   TOKENIZER_CALL,
   #endif
 
-  #if AVR_RND
+  #if UBASIC_RND
   TOKENIZER_SRND,
   TOKENIZER_RND,
   #endif
@@ -126,9 +126,7 @@ enum {
   TOKENIZER_GE,
   TOKENIZER_LE,
   TOKENIZER_NE,
-  
   TOKENIZER_CR					// 54
-  
 };
 
 
@@ -137,8 +135,8 @@ void tokenizer_next(void);
 int tokenizer_token(void);
 int tokenizer_num(void);
 int tokenizer_variable_num(void);
-void tokenizer_string(char *dest, int len);
-char tokenizer_letter(void);
+const char * tokenizer_last_string_ptr(void);
+//char tokenizer_letter(void);
 
 int tokenizer_finished(void);
 void tokenizer_error_print(int linenum, int error_nr);

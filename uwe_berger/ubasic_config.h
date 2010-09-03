@@ -9,11 +9,26 @@
 #ifndef __UBASIC_CONFIG_H__
 #define __UBASIC_CONFIG_H__
 
+
+// AVR-spezifischen einschalten
+#ifndef USE_AVR
+	#define USE_AVR		1
+#endif
+
 // regulaere Standardausgabe
-#define PRINTF(...)  usart_write(__VA_ARGS__)
+#if USE_AVR
+	#define PRINTF(...)  usart_write(__VA_ARGS__)
+#else
+	#define PRINTF(...)  printf(__VA_ARGS__)
+#endif
+
+// grml..., sollte man besser loesen!
+#if !USE_AVR
+	#define uint8_t unsigned char
+#endif
 
 // max. Stringlaenge (Basic)
-#define MAX_STRINGLEN 40
+#define MAX_STRINGLEN 20
 
 // max. Schachtelungstiefe fuer GOSUB (Basic)
 #define MAX_GOSUB_STACK_DEPTH 2
@@ -43,12 +58,13 @@
 #define UBASIC_SHL		1
 #define UBASIC_SHR		1
 #define UBASIC_PRINT	1
+#define UBASIC_RND		1
 
 // exit(1) in Fehlersituationen macht sich bei AVRs etwas schlecht...
-#define BREAK_NOT_EXIT	1
+#ifndef BREAK_NOT_EXIT
+	#define BREAK_NOT_EXIT	1
+#endif
 
-// AVR-spezifischen einschalten
-#define USE_AVR			1
 
 // die folgenden Defines nur, wenn USE_AVR gesetzt ist
 #if USE_AVR
@@ -68,7 +84,6 @@
 #define AVR_IN			1
 #define AVR_OUT			1
 #define AVR_ADC			1
-#define AVR_RND			1
 
 
 // AVR-Ports fuer Basic-Befehle dir, in, out

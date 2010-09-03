@@ -110,7 +110,8 @@ int main(void)
 	
 	usart_write("AVR-uBasic-Interpreter; Uwe Berger, 2010\r\n");
 	usart_write("Compiliert am "__DATE__" um "__TIME__"\r\n");
-	//usart_write("Compiliert mit GCC Version "__VERSION__"\r\n");
+	usart_write("\r\nunused mem: %i\r\n", get_mem_unused());
+	usart_write("free mem..: %i\r\n", get_mem_free());
     // Prompt
     usart_write("\r\n>");
 	

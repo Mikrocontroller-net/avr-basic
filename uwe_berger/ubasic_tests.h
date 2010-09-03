@@ -16,7 +16,7 @@ const char prog1[] PROGMEM=
 "\
 5  c=9\n\
 10 print \"davor\", c\n\
-20 print in(c,0)\n\
+20 print in(\"c\",0)\n\
 30 print \"danach\"\n\
 60 end\n\
 ";
@@ -44,9 +44,9 @@ const char prog3[] PROGMEM=
 
 const char prog4[] PROGMEM=
 "\
-10 dir(b,1)=1\n\
+10 dir(\"b\",1)=1\n\
 20 a=0\n\
-30 out(b,1)=a\n\
+30 out(\"b\",1)=a\n\
 40 if a=1 then a=0 else a=1\n\
 50 wait 1000\n\
 60 goto 30\n\
@@ -55,10 +55,10 @@ const char prog4[] PROGMEM=
 
 const char prog5[] PROGMEM=
 "\
-10 dir(b,1)=1\n\
-20 out(b,1)=1\n\
+10 dir(\"b\",1)=1\n\
+20 out(\"b\",1)=1\n\
 30 wait 1000\n\
-40 out(b,1)=0\n\
+40 out(\"b\",1)=0\n\
 50 wait 1000\n\
 60 goto 20\n\
 70 end\n\
@@ -66,11 +66,11 @@ const char prog5[] PROGMEM=
 
 const char prog6[] PROGMEM=
 "\
-10 dir(b,1)=1\n\
+10 dir(\"b\",1)=1\n\
 20 a=0\n\
 30 a=a+1\n\
-40 if (a%2)=1 then out(b,1)=0 else out(b,1)=1\n\
-50 print \"a=\",a,\"adc(0)=\",adc(0)\n\
+40 if (a%2)=1 then out(\"b\",1)=0 else out(\"b\",1)=1\n\
+50 print \"a=\";a;\", adc(0)=\";adc(0)\n\
 50 wait 1000\n\
 60 goto 30\n\
 70 end\n\
