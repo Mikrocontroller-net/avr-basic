@@ -9,6 +9,7 @@
 * ---------
 *
 ----------------------------------------------------------*/
+#include "tokenizer_access.h"
 #include "ubasic.h"
 #include "tokenizer.h"
 #include "ubasic_config.h"

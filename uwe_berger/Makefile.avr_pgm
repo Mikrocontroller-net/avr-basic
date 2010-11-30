@@ -6,9 +6,9 @@
 MCU		= atmega168
 #MCU		= atmega644p
 TARGET_ARCH     = -mmcu=$(MCU)
-OBJECTS         = main.o usart.o ubasic.o tokenizer.o ubasic_call.o ubasic_cvars.o mem_check.o
+OBJECTS         = pgm_ubasic.o usart.o ubasic.o tokenizer.o ubasic_call.o ubasic_cvars.o mem_check.o
 AVRDUDE_PROGRAMMER = usbasp
-TARGET	= main
+TARGET	= pgm_ubasic
 
 
 CC      = avr-gcc
@@ -21,30 +21,30 @@ CFLAGS  += -fno-tree-scev-cprop -fno-split-wide-types
 
 CFLAGS  += -DF_CPU=16000000UL
 CFLAGS  += -DUSE_AVR=1
-CFLAGS  += -DACCESS_VIA_SRAM=1
+CFLAGS  += -DACCESS_VIA_PGM=1
 ASFLAGS = -Os -g -Wall -I.
 LDFLAGS = -g
 #LDFLAGS += -Wl,--relax
 MODULES = $(OBJECTS)
 
 
-all:	main.hex
+all:	pgm_ubasic.hex
 
 clean:
-	rm -f main.hex main.elf use-ubasic *.o *.d 
+	rm -f pgm_ubasic.hex pgm_ubasis.elf use-ubasic *.o *.d 
 
-main.elf: $(MODULES)
+pgm_ubasic.elf: $(MODULES)
 	$(LINK.o) -o $@ $(MODULES)
 
-main.hex: main.elf
-	avr-objcopy -j .text -j .data -O ihex main.elf main.hex
-	avr-size main.hex
+pgm_ubasic.hex: pgm_ubasic.elf
+	avr-objcopy -j .text -j .data -O ihex pgm_ubasic.elf pgm_ubasic.hex
+	avr-size pgm_ubasic.hex
 
-disasm: main.elf
-	avr-objdump -S main.elf
+disasm: pgm_ubasic.elf
+	avr-objdump -S pgm_ubasic.elf
 
 flash:
 	avrdude -p $(MCU) -c $(AVRDUDE_PROGRAMMER) -U flash:w:$(TARGET).hex	
 
-main.o: main.c
+pgm_ubasic.o: pgm_ubasic.c
 

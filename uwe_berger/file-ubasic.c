@@ -3,10 +3,10 @@
 *             ========================================
 *               Uwe Berger (bergeruw@gmx.net); 2010
 * 
-* ==>> Basic-Programmtext im RAM <<==
-*      -------------------------
+* ==>> Basic-Programmtext steht in einer Datei <<==
+*      ---------------------------------------
 * 
-* Basic-Programm wird aus Filesystem in den RAM geladen und ausgefuehrt.
+* Basic-Programm wird direkt via Filesystemzugriffe gelesen.
 * 
 * Syntax: ubasic <Dateiname_des_Basic-Programms>
 * 
@@ -21,15 +21,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_PROGRAM_LEN	1000
-static char program[MAX_PROGRAM_LEN] = "";
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 int main(int argc, char* argv[]) {
 
-	FILE *f;
+	// ist in tokenizer_access.c deklariert...
+	extern FILE *f;
 
 	printf("uBasic-Interpreter; Uwe Berger, 2010\r\n");
 	printf("Compiliert am "__DATE__" um "__TIME__"\r\n");
@@ -47,14 +46,13 @@ int main(int argc, char* argv[]) {
 		printf("Fehler beim Oeffnen der Datei: %s\n", argv[1]);
 		exit(1);
 	}
-	fread(program, sizeof(char), sizeof(program), f);
-	fclose(f);
 
 	// Basic-Programm interpretieren
-	ubasic_init(program);
+	ubasic_init(0);
 	do {
 		ubasic_run();
 	} while(!ubasic_finished());
 
+	fclose(f);
 	exit(0);
 }

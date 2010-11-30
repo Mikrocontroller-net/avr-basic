@@ -130,18 +130,17 @@ enum {
 };
 
 
-void tokenizer_init(const char *program);
+void tokenizer_init(PTR_TYPE program);
 void tokenizer_next(void);
 int tokenizer_token(void);
 int tokenizer_num(void);
 int tokenizer_variable_num(void);
 const char * tokenizer_last_string_ptr(void);
-//char tokenizer_letter(void);
 
 int tokenizer_finished(void);
 void tokenizer_error_print(int linenum, int error_nr);
-const char *get_prog_text_pointer(void);
-void jump_to_prog_text_pointer(const char *jump_ptr);
+PTR_TYPE get_prog_text_pointer(void);
+void jump_to_prog_text_pointer(PTR_TYPE jump_ptr);
 void jump_to_next_linenum(void);
 
 #endif /* __TOKENIZER_H__ */

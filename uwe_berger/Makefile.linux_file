@@ -6,11 +6,11 @@
 CC      = gcc
 CFLAGS  = -Wall -g
 CFLAGS  += -DUSE_AVR=0
-CFLAGS  += -DACCESS_VIA_SRAM=1
+CFLAGS  += -DACCESS_VIA_FILE=1
 CFLAGS  += -DBREAK_NOT_EXIT=0
 CFLAGS  += -DMAX_STRINGLEN=80
 
-OBJ = use-ubasic.o ubasic.o tokenizer.o ubasic_call.o ubasic_cvars.o
+OBJ = file-ubasic.o ubasic.o tokenizer.o ubasic_call.o ubasic_cvars.o tokenizer_access.o
 BIN = ubasic
 
 ubasic: $(OBJ)

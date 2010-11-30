@@ -44,13 +44,14 @@
 #define UNKNOWN_CALL_FUNCT		6
 #define UNKNOWN_CALL_FUNCT_TYP	7
 #define UNKNOWN_CVAR_NAME		8
+#define SHORT_IF_WITH_ELSE		9
 
 
 
 
 int current_linenum;
 
-void ubasic_init(const char *program);
+void ubasic_init(PTR_TYPE program);
 void ubasic_run(void);
 int ubasic_finished(void);
 

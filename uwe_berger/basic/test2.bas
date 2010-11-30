@@ -1,5 +1,5 @@
 10  srand
-20  for v=1 to 32000
+20  for v=1 to 2000
 30  y=rand(5)
 40  if y=0 then a=a+1
 50  if y=1 then b=b+1

@@ -41,7 +41,9 @@
 	#define DEBUG_PRINTF(...)
 #endif
 
-
+#define __TOKENIZER_C__
+	#include "tokenizer_access.h"
+#undef __TOKENIZER_C__
 #include "tokenizer.h"
 #include "ubasic_config.h"
 
@@ -59,9 +61,8 @@
 	#include <avr/pgmspace.h>
 #endif
 
-static char const *ptr;
-static char const *last_num_ptr;
 
+static PTR_TYPE last_num_ptr;
 static char last_string[MAX_STRINGLEN+1];
 static int  last_value;
 static int  last_var_num;
@@ -70,8 +71,7 @@ static int  last_var_num;
 
 struct keyword_token {
 #if USE_PROGMEM
-	// um via strxxx_P zugreifen zu koennen, muss eine feste Laenge vorgegeben
-	// werden
+	// um via strxxx_P zugreifen zu koennen, muss eine feste Laenge vorgegeben werden
 	char keyword[MAX_KEYWORD_LEN+1];
 #else	
 	char *keyword;
@@ -160,59 +160,60 @@ static const struct keyword_token keywords[] = {
 	{"<>", TOKENIZER_NE},
 	{"", TOKENIZER_ERROR}
 };
+// Prototypen
+static int get_next_token(void);
 
 /*---------------------------------------------------------------------------*/
-const char *get_prog_text_pointer(void) {
-	//return ptr;
+PTR_TYPE get_prog_text_pointer(void) {
 	return last_num_ptr;
 }
 
 /*---------------------------------------------------------------------------*/
-void jump_to_prog_text_pointer(const char *jump_ptr) {
-	ptr=jump_ptr;
-	tokenizer_init(ptr);	
+void jump_to_prog_text_pointer(PTR_TYPE jump_ptr) {
+	SET_PROG_PTR_ABSOLUT(jump_ptr);
+	current_token = get_next_token();
 }
 
 /*---------------------------------------------------------------------------*/
 void jump_to_next_linenum(void) {
-	while(*ptr != '\n' && *ptr != 0) {
-		++ptr;  
+	while(GET_CONTENT_PROG_PTR != '\n' && GET_CONTENT_PROG_PTR != 0) {
+		INCR_PROG_PTR;  
 	}
-	if(*ptr == '\n') ++ptr;
-	tokenizer_init(ptr);	
+	if(GET_CONTENT_PROG_PTR == '\n') INCR_PROG_PTR;
+	current_token = get_next_token();
 }
 
 /*---------------------------------------------------------------------------*/
 static int singlechar(void) {
-	if(*ptr == '\n') {
+	if(GET_CONTENT_PROG_PTR == '\n') {
 		return TOKENIZER_CR;
-	} else if(*ptr == ',') {
+	} else if(GET_CONTENT_PROG_PTR == ',') {
 		return TOKENIZER_COMMA;
-	} else if(*ptr == ';') {
+	} else if(GET_CONTENT_PROG_PTR == ';') {
 		return TOKENIZER_SEMICOLON;
-	} else if(*ptr == '+') {
+	} else if(GET_CONTENT_PROG_PTR == '+') {
 		return TOKENIZER_PLUS;
-	} else if(*ptr == '-') {
+	} else if(GET_CONTENT_PROG_PTR == '-') {
 		return TOKENIZER_MINUS;
-	} else if(*ptr == '&') {
+	} else if(GET_CONTENT_PROG_PTR == '&') {
 		return TOKENIZER_AND;
-	} else if(*ptr == '|') {
+	} else if(GET_CONTENT_PROG_PTR == '|') {
 		return TOKENIZER_OR;
-	} else if(*ptr == '*') {
+	} else if(GET_CONTENT_PROG_PTR == '*') {
 		return TOKENIZER_ASTR;
-	} else if(*ptr == '/') {
+	} else if(GET_CONTENT_PROG_PTR == '/') {
 		return TOKENIZER_SLASH;
-	} else if(*ptr == '%') {
+	} else if(GET_CONTENT_PROG_PTR == '%') {
 		return TOKENIZER_MOD;
-	} else if(*ptr == '(') {
+	} else if(GET_CONTENT_PROG_PTR == '(') {
 		return TOKENIZER_LEFTPAREN;
-	} else if(*ptr == ')') {
+	} else if(GET_CONTENT_PROG_PTR == ')') {
 		return TOKENIZER_RIGHTPAREN;
-	} else if(*ptr == '<') {
+	} else if(GET_CONTENT_PROG_PTR == '<') {
 		return TOKENIZER_LT;
-	} else if(*ptr == '>') {
+	} else if(GET_CONTENT_PROG_PTR == '>') {
 		return TOKENIZER_GT;
-	} else if(*ptr == '=') {
+	} else if(GET_CONTENT_PROG_PTR == '=') {
 		return TOKENIZER_EQ;
   	}
 	return 0;
@@ -224,58 +225,63 @@ static int get_next_token(void) {
 #endif
 	uint8_t i;
 	int temp_token;
+	char k_temp[MAX_KEYWORD_LEN+1];
   
-	DEBUG_PRINTF("get_next_token(): '%s'\n", ptr);
-	if(*ptr == 0) {
+	if(END_OF_PROG_TEXT) {
 		return TOKENIZER_ENDOFINPUT;
 	}
-	if(isdigit(*ptr)) {
+	if(isdigit(GET_CONTENT_PROG_PTR)) {
 		last_value=0;
 		for(i = 0; i <= MAX_NUMLEN; ++i) {
-			if(!isdigit(*ptr)) {
+			if(!isdigit(GET_CONTENT_PROG_PTR)) {
 				if(i > 0) {
-					last_num_ptr = ptr - i; //??? doof!
+					last_num_ptr = PROG_PTR - i; //??? doof!
 					return TOKENIZER_NUMBER;
 				} else {
-				DEBUG_PRINTF("get_next_token: error due to too short number\r\n");
 				return TOKENIZER_ERROR;
 				}
 			}
-			if(!isdigit(*ptr)) {
-				DEBUG_PRINTF("get_next_token: error due to malformed number\r\n");
+			if(!isdigit(GET_CONTENT_PROG_PTR)) {
 				return TOKENIZER_ERROR;
 			}
-			last_value = 10 * last_value + *ptr - '0';
-			ptr++;
+			last_value = 10 * last_value + GET_CONTENT_PROG_PTR - '0';
+			INCR_PROG_PTR;
     	}
-		DEBUG_PRINTF("get_next_token: error due to too long number\r\n");
 		return TOKENIZER_ERROR;
-	} else if(*ptr == '"') {
-						ptr++;
+	} else if(GET_CONTENT_PROG_PTR == '"') {
+						INCR_PROG_PTR;
 						i=0;
 						do {
-							last_string[i] = *ptr;
-							++ptr;
+							last_string[i] = GET_CONTENT_PROG_PTR;
+							INCR_PROG_PTR;
 							i++;
 							// max. zulaessige Stringlaenge?
 							if (i >= MAX_STRINGLEN) return TOKENIZER_ERROR;
-						} while(*ptr != '"');
+						} while(GET_CONTENT_PROG_PTR != '"');
 						// String null-terminieren
 						last_string[i]=0;
-						++ptr;
+						INCR_PROG_PTR;
 						return TOKENIZER_STRING;
 				} else {
+					// Textabschnitt aus Quelltext auf Zwischenvariable
+					for (i=0; i < MAX_KEYWORD_LEN; i++) {
+						k_temp[i] = GET_CONTENT_PROG_PTR;
+						INCR_PROG_PTR;
+					}
+					// PTR wieder an Ursprungstelle setzen
+					SET_PROG_PTR_ABSOLUT(PROG_PTR - i);
+					k_temp[i]=0;
 #if USE_PROGMEM  	
 					for (i=0; i < sizeof(keywords)/sizeof(keywords[0])-1; i++) {
-						if (strncasecmp_P(ptr, keywords[i].keyword, strlen_P(keywords[i].keyword)) == 0) {
-							ptr = ptr + strlen_P(keywords[i].keyword);
+						if (strncasecmp_P(k_temp, keywords[i].keyword, strlen_P(keywords[i].keyword)) == 0) {
+							SET_PROG_PTR_ABSOLUT(PROG_PTR + strlen_P(keywords[i].keyword));
 							return pgm_read_word(&keywords[i].token);
 						}
 					}
 #else  	
 					for(kt = keywords; kt->token != TOKENIZER_ERROR; ++kt) {
-						if(strncasecmp(ptr, kt->keyword, strlen(kt->keyword)) == 0) {
-							ptr = ptr + strlen(kt->keyword);
+						if(strncasecmp(k_temp, kt->keyword, strlen(kt->keyword)) == 0) {
+							SET_PROG_PTR_ABSOLUT(PROG_PTR + strlen(kt->keyword));
 							return kt->token;
 						}
 					}
@@ -284,19 +290,19 @@ static int get_next_token(void) {
 				
 	temp_token = singlechar();
 	if (temp_token) {
-		ptr = ptr + 1;
+		INCR_PROG_PTR;
 		return temp_token;
 	}
-	if((*ptr >= 'a' && *ptr <= 'z') || (*ptr >= 'A' && *ptr <= 'Z')) {
-		if (*ptr >= 'a') last_var_num=*ptr-'a'; else last_var_num=*ptr-'A';
-		ptr = ptr + 1;
+	if((GET_CONTENT_PROG_PTR >= 'a' && GET_CONTENT_PROG_PTR <= 'z') || (GET_CONTENT_PROG_PTR >= 'A' && GET_CONTENT_PROG_PTR <= 'Z')) {
+		if (GET_CONTENT_PROG_PTR >= 'a') last_var_num=GET_CONTENT_PROG_PTR-'a'; else last_var_num=GET_CONTENT_PROG_PTR-'A';
+		INCR_PROG_PTR;
 		return TOKENIZER_VARIABLE;
 	}
 	return TOKENIZER_ERROR;
 }
 /*---------------------------------------------------------------------------*/
-void tokenizer_init(const char *program) {
-	ptr = program;
+void tokenizer_init(PTR_TYPE program) {
+	SET_PROG_PTR_ABSOLUT(program);
 	current_token = get_next_token();
 }
 /*---------------------------------------------------------------------------*/
@@ -306,10 +312,8 @@ int tokenizer_token(void) {
 /*---------------------------------------------------------------------------*/
 void tokenizer_next(void) {
 	if(tokenizer_finished()) return;
-	DEBUG_PRINTF("tokenizer_next: %p\r\n", nextptr);
-	while(*ptr == ' ') ++ptr;
+	while(GET_CONTENT_PROG_PTR == ' ') INCR_PROG_PTR;
 	current_token = get_next_token();
-	DEBUG_PRINTF("tokenizer_next: '%s', %i\r\n", ptr, current_token);
 	return;
 }
 /*---------------------------------------------------------------------------*/
@@ -317,7 +321,7 @@ int tokenizer_num(void) {
 	return last_value;
 }
 /*---------------------------------------------------------------------------*/
-const char * tokenizer_last_string_ptr(void) {
+char const *tokenizer_last_string_ptr(void) {
 	return (const char*)&last_string[0];
 }
 /*---------------------------------------------------------------------------*/
@@ -326,7 +330,7 @@ void tokenizer_error_print(int linenum, int error_nr) {
 }
 /*---------------------------------------------------------------------------*/
 int tokenizer_finished(void) {
-	return *ptr == 0 || current_token == TOKENIZER_ENDOFINPUT;
+	return END_OF_PROG_TEXT || current_token == TOKENIZER_ENDOFINPUT;
 }
 /*---------------------------------------------------------------------------*/
 int tokenizer_variable_num(void) {

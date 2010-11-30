@@ -40,7 +40,7 @@
 	#define DEBUG_PRINTF(...)
 #endif
 
-
+#include "tokenizer_access.h"
 #include "ubasic.h"
 #include "tokenizer.h"
 #include "ubasic_config.h"
@@ -76,17 +76,17 @@
 	#include <stdlib.h> /* exit() */
 #endif
 
-static char const *program_ptr;
+static PTR_TYPE program_ptr;
 
 //#if UBASIC_PRINT
 //static char string[MAX_STRINGLEN];
 //#endif
 
-static const char *gosub_stack[MAX_GOSUB_STACK_DEPTH];
+static PTR_TYPE gosub_stack[MAX_GOSUB_STACK_DEPTH];
 static int gosub_stack_ptr;
 
 struct for_state {
-  const char *next_line_ptr;
+  PTR_TYPE next_line_ptr;
   int for_variable;
   int to;
   int step;
@@ -99,7 +99,7 @@ static int for_stack_ptr;
 #if USE_LINENUM_CACHE
 struct linenum_cache_t {
 	int linenum;
-	const char *next_line_ptr;
+	PTR_TYPE next_line_ptr;
 };
 
 static struct linenum_cache_t linenum_cache[MAX_LINENUM_CACHE_DEPTH];
@@ -120,7 +120,7 @@ static long unsigned int rand31_next(void);
 
 /*---------------------------------------------------------------------------*/
 void
-ubasic_init(const char *program)
+ubasic_init(PTR_TYPE program)
 {
 	uint8_t i;
 	program_ptr = program;
@@ -189,11 +189,14 @@ factor(void)
     accept(TOKENIZER_NUMBER);
     break;
     
-  //?????
   case TOKENIZER_MINUS:
     accept(TOKENIZER_MINUS);
-    r = tokenizer_num()*(-1);
-    accept(TOKENIZER_NUMBER);
+    r = expr()*(-1);
+    break;
+
+  case TOKENIZER_PLUS:
+    accept(TOKENIZER_PLUS);
+    r = expr();
     break;
 
   case TOKENIZER_LEFTPAREN:
@@ -261,8 +264,7 @@ factor(void)
   case TOKENIZER_ADC:
     accept(TOKENIZER_ADC);
     accept(TOKENIZER_LEFTPAREN);
-	pin=tokenizer_num();
-    tokenizer_next();
+	pin=expr();
 	if ((pin<0)||(pin>ADC_COUNT_MAX)) {
 		//Fehlerfall
 		DEBUG_PRINTF("adc_token: unknown channel %c\r\n", pin);
@@ -296,8 +298,7 @@ factor(void)
     accept(TOKENIZER_STRING);
 	port=tokenizer_last_string_ptr();
 	accept(TOKENIZER_COMMA);
-	pin=tokenizer_num();
-	tokenizer_next();
+	pin=expr();
     accept(TOKENIZER_RIGHTPAREN);
 		switch (*port) {
 		#if HAVE_PORTA
@@ -512,97 +513,106 @@ static void
 goto_statement(void)
 {
   accept(TOKENIZER_GOTO);
-  jump_linenum(tokenizer_num());
+  jump_linenum(expr());
 }
 /*---------------------------------------------------------------------------*/
 #if UBASIC_PRINT
 static void
 print_statement(void)
 {
-  accept(TOKENIZER_PRINT);
-  do {
-    DEBUG_PRINTF("Print loop\r\n");
-    if(tokenizer_token() == TOKENIZER_STRING) {
-      PRINTF("%s", tokenizer_last_string_ptr());
-      tokenizer_next();
-    } else if(tokenizer_token() == TOKENIZER_COMMA) {
-      PRINTF(" ");
-      tokenizer_next();
-    } else if(tokenizer_token() == TOKENIZER_SEMICOLON) {
-      tokenizer_next();
-    } else if(tokenizer_token() == TOKENIZER_VARIABLE  ||
-    		  tokenizer_token() == TOKENIZER_LEFTPAREN ||
-	          #if UBASIC_RND
-			  tokenizer_token() == TOKENIZER_RND       ||
-			  #endif
-	          #if UBASIC_ABS
-			  tokenizer_token() == TOKENIZER_ABS       ||
-			  #endif
-	          #if UBASIC_NOT
-			  tokenizer_token() == TOKENIZER_NOT       ||
-			  #endif
-	          #if UBASIC_CALL
-			  tokenizer_token() == TOKENIZER_CALL      ||
-			  #endif
-	          #if UBASIC_CVARS
-			  tokenizer_token() == TOKENIZER_VPEEK     ||
-			  #endif
-	          #if AVR_EPEEK
-			  tokenizer_token() == TOKENIZER_EPEEK     ||
-			  #endif
-			  #if AVR_IN
-			  tokenizer_token() == TOKENIZER_IN        ||
-			  #endif
-			  #if AVR_ADC
-			  tokenizer_token() == TOKENIZER_ADC       ||
-			  #endif
-	          tokenizer_token() == TOKENIZER_NUMBER ) {
-      				PRINTF("%i", expr());
-    } else {
-      break;
-    }
-  } while(tokenizer_token() != TOKENIZER_CR &&
-	  tokenizer_token() != TOKENIZER_ENDOFINPUT);
-  PRINTF("\n\r");
-  DEBUG_PRINTF("End of print\r\n");
-  tokenizer_next();
+	uint8_t nl;
+	accept(TOKENIZER_PRINT);
+	do {
+		nl=1;
+		DEBUG_PRINTF("Print loop\r\n");
+		if(tokenizer_token() == TOKENIZER_STRING) {
+			PRINTF("%s", tokenizer_last_string_ptr());
+			tokenizer_next();
+		} else if(tokenizer_token() == TOKENIZER_COMMA) {
+			nl=0;
+			PRINTF(" ");
+			tokenizer_next();
+		} else if(tokenizer_token() == TOKENIZER_SEMICOLON) {
+			nl=0;
+			tokenizer_next();
+		} else if(tokenizer_token() == TOKENIZER_VARIABLE  ||
+			tokenizer_token() == TOKENIZER_LEFTPAREN ||
+			tokenizer_token() == TOKENIZER_MINUS     ||
+			tokenizer_token() == TOKENIZER_PLUS      ||
+			#if UBASIC_RND
+			tokenizer_token() == TOKENIZER_RND       ||
+			#endif
+			#if UBASIC_ABS
+			tokenizer_token() == TOKENIZER_ABS       ||
+			#endif
+			#if UBASIC_NOT
+			tokenizer_token() == TOKENIZER_NOT       ||
+			#endif
+			#if UBASIC_CALL
+			tokenizer_token() == TOKENIZER_CALL      ||
+			#endif
+			#if UBASIC_CVARS
+			tokenizer_token() == TOKENIZER_VPEEK     ||
+			#endif
+			#if AVR_EPEEK
+			tokenizer_token() == TOKENIZER_EPEEK     ||
+			#endif
+			#if AVR_IN
+			tokenizer_token() == TOKENIZER_IN        ||
+			#endif
+			#if AVR_ADC
+			tokenizer_token() == TOKENIZER_ADC       ||
+			#endif
+			tokenizer_token() == TOKENIZER_NUMBER ) {
+				PRINTF("%i", expr());
+		} else {
+			break;
+		}
+	} while(tokenizer_token() != TOKENIZER_CR &&
+			tokenizer_token() != TOKENIZER_ENDOFINPUT);
+	// wenn "," oder ";" am Zeilenende, dann kein Zeilenvorschub
+	if (nl) PRINTF("\n\r");
+	DEBUG_PRINTF("End of print\r\n");
+	tokenizer_next();
 }
 #endif
 /*---------------------------------------------------------------------------*/
 static void
 if_statement(void)
 {
-  int r;
+	int r;
+	uint8_t no_then=0;
   
-  accept(TOKENIZER_IF);
-  r = relation();
-  DEBUG_PRINTF("if_statement: relation %i\r\n", r);
-  accept(TOKENIZER_THEN);
-  if(r) {
-    statement();
-    
-    DEBUG_PRINTF("if_statement: token=%i\r\n", tokenizer_token());
-
-	// hmm..., hier ist man schon ein Token zu weit...
-	if(tokenizer_token() == TOKENIZER_NUMBER) {
-	    DEBUG_PRINTF("if_statement: WEG!\r\n");
-		return;
+	accept(TOKENIZER_IF);
+	r = relation();
+	// Kurzform (IF ohne THEN/ELSE)?
+	if (tokenizer_token() == TOKENIZER_THEN) accept(TOKENIZER_THEN); else no_then=1;
+	if(r) {
+		statement();
+		// bei Kurzform darf kein ELSE kommen!
+		if (no_then && (tokenizer_token() != TOKENIZER_NUMBER)) {
+		    tokenizer_error_print(current_linenum, SHORT_IF_WITH_ELSE);
+			ubasic_break();			
+		}
+		// hmm..., hier ist man schon ein Token zu weit...
+		if(tokenizer_token() == TOKENIZER_NUMBER) return;
+		jump_to_next_linenum();
+	} else {
+		do {
+			tokenizer_next();
+		} while(tokenizer_token() != TOKENIZER_ELSE &&
+				tokenizer_token() != TOKENIZER_CR &&
+				tokenizer_token() != TOKENIZER_ENDOFINPUT);
+		if(tokenizer_token() == TOKENIZER_ELSE) {
+			// bei Kurzform darf kein ELSE kommen!
+			if (no_then) {
+				tokenizer_error_print(current_linenum, SHORT_IF_WITH_ELSE);
+				ubasic_break();
+			}
+			tokenizer_next();
+			statement();
+		} else	if(tokenizer_token() == TOKENIZER_CR) tokenizer_next();
 	}
-	jump_to_next_linenum();
-  } else {
-    do {
-      tokenizer_next();
-    } while(tokenizer_token() != TOKENIZER_ELSE &&
-	        tokenizer_token() != TOKENIZER_CR &&
-	        tokenizer_token() != TOKENIZER_ENDOFINPUT);
-    if(tokenizer_token() == TOKENIZER_ELSE) {
-      tokenizer_next();
-      statement();
-    } else if(tokenizer_token() == TOKENIZER_CR) {
-      tokenizer_next();
-    }
-  }
-  DEBUG_PRINTF("if_statement ENDE: token=%i\r\n", tokenizer_token());
 }
 
 /*---------------------------------------------------------------------------*/
@@ -623,11 +633,13 @@ gosub_statement(void)
 {
 	int linenum;
 	accept(TOKENIZER_GOSUB);
-	linenum = tokenizer_num();
-	//accept(TOKENIZER_NUMBER);
+	linenum = expr();
 	// es muss bis zum Zeilenende gelesen werden, um die Rueck-
 	// sprungzeile fuer return zu ermitteln
-	jump_to_next_linenum();
+	//jump_to_next_linenum();
+	// ... wg. expr() steht der Parser schon am Zeilenende CR (wenn Syntax 
+	// ok ist), deshalb nur noch ein Token weiterlesen!
+	tokenizer_next();
 	if(gosub_stack_ptr < MAX_GOSUB_STACK_DEPTH) {
 		gosub_stack[gosub_stack_ptr] = get_prog_text_pointer();
 		DEBUG_PRINTF("gosub_statement: gosub_stack=%i\r\n", gosub_stack[gosub_stack_ptr]);
@@ -766,8 +778,7 @@ dir_statement(void)
     accept(TOKENIZER_STRING);
 	port=tokenizer_last_string_ptr();
 	accept(TOKENIZER_COMMA);
-	pin=tokenizer_num();
-	tokenizer_next();
+	pin=expr();
     accept(TOKENIZER_RIGHTPAREN);
     accept(TOKENIZER_EQ);
 	if (expr()) val=1; else val=0;
@@ -819,8 +830,7 @@ out_statement(void)
     accept(TOKENIZER_STRING);
 	port=tokenizer_last_string_ptr();
 	accept(TOKENIZER_COMMA);
-	pin=tokenizer_num();
-	tokenizer_next();
+	pin=expr();
     accept(TOKENIZER_RIGHTPAREN);
     accept(TOKENIZER_EQ);
 	val = expr();
@@ -985,7 +995,7 @@ statement(void)
   case TOKENIZER_VARIABLE:
     let_statement();
     break;
-
+    
   default:
     DEBUG_PRINTF("ubasic.c: statement(): not implemented %i\r\n", token);
     tokenizer_error_print(current_linenum, UNKNOWN_STATEMENT);
