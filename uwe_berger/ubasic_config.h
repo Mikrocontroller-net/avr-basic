@@ -65,6 +65,7 @@
 #define UBASIC_SHR		1
 #define UBASIC_PRINT	1
 #define UBASIC_RND		1
+#define UBASIC_HEX_BIN	1
 
 // exit(1) in Fehlersituationen macht sich bei AVRs etwas schlecht...
 #ifndef BREAK_NOT_EXIT

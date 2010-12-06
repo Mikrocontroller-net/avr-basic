@@ -68,6 +68,8 @@ static int  last_value;
 static int  last_var_num;
 
 #define MAX_NUMLEN 5
+#define MAX_HEXLEN 4
+#define MAX_BINLEN 16
 
 struct keyword_token {
 #if USE_PROGMEM
@@ -163,6 +165,7 @@ static const struct keyword_token keywords[] = {
 // Prototypen
 static int get_next_token(void);
 
+
 /*---------------------------------------------------------------------------*/
 PTR_TYPE get_prog_text_pointer(void) {
 	return last_num_ptr;
@@ -218,6 +221,18 @@ static int singlechar(void) {
   	}
 	return 0;
 }
+
+#if UBASIC_HEX_BIN
+/*---------------------------------------------------------------------------*/
+int hex2int(char c) {
+	if (c<='9') return (c-'0'); else return (c-'A'+10);
+}
+/*---------------------------------------------------------------------------*/
+char isbdigit(char c) {
+	if ((c=='0') || (c=='1')) return 1; else return 0;
+}
+#endif
+
 /*---------------------------------------------------------------------------*/
 static int get_next_token(void) {
 #if !USE_PROGMEM
@@ -232,17 +247,51 @@ static int get_next_token(void) {
 	}
 	if(isdigit(GET_CONTENT_PROG_PTR)) {
 		last_value=0;
+		#if UBASIC_HEX_BIN
+		if (GET_CONTENT_PROG_PTR == '0') {
+			INCR_PROG_PTR;
+		}
+		if (!isdigit(GET_CONTENT_PROG_PTR)) {
+			switch (toupper(GET_CONTENT_PROG_PTR)) {
+				// Hex-Format --> 0x12AB
+				case 'X':
+					INCR_PROG_PTR;
+					for(i = 0; i <= MAX_HEXLEN; ++i) {
+						if(!isxdigit(GET_CONTENT_PROG_PTR)) {
+							if(i > 0) return TOKENIZER_NUMBER; else return TOKENIZER_ERROR;
+						}
+						last_value = 16 * last_value + hex2int(toupper(GET_CONTENT_PROG_PTR));
+						INCR_PROG_PTR;
+					}
+					return TOKENIZER_ERROR;
+					break;
+				// Binaer-Format --> 0b1010
+				case 'B':
+					INCR_PROG_PTR;
+					for(i = 0; i <= MAX_BINLEN; ++i) {
+						if(!isbdigit(GET_CONTENT_PROG_PTR)) {
+							if(i > 0) return TOKENIZER_NUMBER; else return TOKENIZER_ERROR;
+						}
+						last_value = 2 * last_value + GET_CONTENT_PROG_PTR - '0';
+						INCR_PROG_PTR;
+					}
+					return TOKENIZER_ERROR;
+					break;
+				default:
+					return TOKENIZER_ERROR;
+					break;
+			}
+		}
+		#endif
+		// Dezimal-Format
 		for(i = 0; i <= MAX_NUMLEN; ++i) {
 			if(!isdigit(GET_CONTENT_PROG_PTR)) {
 				if(i > 0) {
-					last_num_ptr = PROG_PTR - i; //??? doof!
+					last_num_ptr = PROG_PTR - i;
 					return TOKENIZER_NUMBER;
 				} else {
-				return TOKENIZER_ERROR;
+					return TOKENIZER_ERROR;
 				}
-			}
-			if(!isdigit(GET_CONTENT_PROG_PTR)) {
-				return TOKENIZER_ERROR;
 			}
 			last_value = 10 * last_value + GET_CONTENT_PROG_PTR - '0';
 			INCR_PROG_PTR;
@@ -293,8 +342,8 @@ static int get_next_token(void) {
 		INCR_PROG_PTR;
 		return temp_token;
 	}
-	if((GET_CONTENT_PROG_PTR >= 'a' && GET_CONTENT_PROG_PTR <= 'z') || (GET_CONTENT_PROG_PTR >= 'A' && GET_CONTENT_PROG_PTR <= 'Z')) {
-		if (GET_CONTENT_PROG_PTR >= 'a') last_var_num=GET_CONTENT_PROG_PTR-'a'; else last_var_num=GET_CONTENT_PROG_PTR-'A';
+	if(toupper(GET_CONTENT_PROG_PTR) >= 'A' && toupper(GET_CONTENT_PROG_PTR) <= 'Z') {
+		last_var_num=toupper(GET_CONTENT_PROG_PTR)-'A';
 		INCR_PROG_PTR;
 		return TOKENIZER_VARIABLE;
 	}

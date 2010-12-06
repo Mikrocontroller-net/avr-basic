@@ -28,7 +28,7 @@
 
 #define DEBUG 0
 #if DEBUG
-	#define DEBUG_PRINTF(...)  usart_write(__VA_ARGS__)
+	#define DEBUG_PRINTF(...)  printf(__VA_ARGS__)
 #else
 	#define DEBUG_PRINTF(...)
 #endif
@@ -52,6 +52,7 @@ void b(int p1) {
 
 int c(int p1) {
 	int r=0;	
+	r=p1;
 #if USE_AVR
 	ADMUX =  p1;
 	ADMUX |= (1<<REFS0);
@@ -63,7 +64,6 @@ int c(int p1) {
 	while (ADCSRA & (1<<ADSC));
 	r = ADCW;
 	ADCSRA=0;
-
 #endif
 	return r;
 }
@@ -97,13 +97,12 @@ int call_statement(void) {
 		tokenizer_next();
 	}
 	// Funktionsname in Tabelle suchen
-	while(strncasecmp(callfunct[idx].funct_name, tokenizer_last_string_ptr(), MAX_NAME_LEN) &&
-		  callfunct[idx].funct_name != 0)
-    {
+	while(callfunct[idx].funct_name != NULL &&
+	      strncasecmp(callfunct[idx].funct_name, tokenizer_last_string_ptr(), MAX_NAME_LEN)) {
     	idx++;
     }
     // einen Tabelleneintrag gefunden!
-    if (callfunct[idx].funct_name == 0) {
+    if (callfunct[idx].funct_name == NULL) {
     	DEBUG_PRINTF("funct_name: %s nicht gefunden!\n\r", tokenizer_last_string_ptr());
     	tokenizer_error_print(current_linenum, UNKNOWN_CALL_FUNCT);
 		ubasic_break();

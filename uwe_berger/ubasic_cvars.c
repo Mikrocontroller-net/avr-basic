@@ -35,6 +35,7 @@
 //------------------------------------------
 // eine Testvariable in C...
 int va = 123;
+int vb = 456;
 
 
 //--------------------------------------------
@@ -42,19 +43,19 @@ int va = 123;
 // Variablenpointertabelle
 cvars_t cvars[] = {
     {"a", &va},
+    {"b", &vb},
     {NULL, NULL}
 };
 
 int search_cvars(const char *var_name) {
 	int idx=0;
 	// Variablenname in Tabelle suchen
-	while(strncasecmp(cvars[idx].var_name, var_name, MAX_NAME_LEN) &&
-		  cvars[idx].var_name != 0)
-    {
+	while(cvars[idx].var_name != NULL &&
+	      strncasecmp(cvars[idx].var_name, var_name, MAX_NAME_LEN)) {
     	idx++;
     }
     // keinen Tabelleneintrag gefunden!
-    if (cvars[idx].var_name == 0) {
+    if (cvars[idx].var_name == NULL) {
     	tokenizer_error_print(current_linenum, UNKNOWN_CVAR_NAME);
 		ubasic_break();
     }
