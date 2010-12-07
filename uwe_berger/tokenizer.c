@@ -247,11 +247,14 @@ static int get_next_token(void) {
 	}
 	if(isdigit(GET_CONTENT_PROG_PTR)) {
 		last_value=0;
+		
 		#if UBASIC_HEX_BIN
+		// Zeiger sichern, falls doch nicht Hex oder Bin
+		PTR_TYPE temp_ptr = PROG_PTR;
 		if (GET_CONTENT_PROG_PTR == '0') {
 			INCR_PROG_PTR;
 		}
-		if (!isdigit(GET_CONTENT_PROG_PTR)) {
+		if (toupper(GET_CONTENT_PROG_PTR)=='X' || toupper(GET_CONTENT_PROG_PTR)=='B') {
 			switch (toupper(GET_CONTENT_PROG_PTR)) {
 				// Hex-Format --> 0x12AB
 				case 'X':
@@ -277,11 +280,10 @@ static int get_next_token(void) {
 					}
 					return TOKENIZER_ERROR;
 					break;
-				default:
-					return TOKENIZER_ERROR;
-					break;
 			}
 		}
+		// kein Hex oder Bin, also wieder an Ursprungsstelle...
+		SET_PROG_PTR_ABSOLUT(temp_ptr);
 		#endif
 		// Dezimal-Format
 		for(i = 0; i <= MAX_NUMLEN; ++i) {
