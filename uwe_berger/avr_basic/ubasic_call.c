@@ -18,7 +18,7 @@
 
 
 #if USE_AVR
-	#include "usart.h"
+	#include "../uart/usart.h"
 #else
 	#include <string.h>
 	#include <stdio.h> 
@@ -38,21 +38,22 @@
 // ein paar Testfunktionen fuer call...
 void a(void) {
 #if USE_AVR
-	DDRB |= (1 << PB1);
-	PORTB |= (1 << PB1);
+	//DDRB |= (1 << PB1);
+	//PORTB |= (1 << PB1);
 #endif
 }
 
 void b(int p1) {
 #if USE_AVR
-	DDRB |= (1 << PB1);
-	if (p1) PORTB |= (1 << PB1); else PORTB &= ~(1 << PB1);
+	//DDRB |= (1 << PB1);
+	//if (p1) PORTB |= (1 << PB1); else PORTB &= ~(1 << PB1);
 #endif
 }
 
 int c(int p1) {
 	int r=0;	
 	r=p1;
+/*
 #if USE_AVR
 	ADMUX =  p1;
 	ADMUX |= (1<<REFS0);
@@ -65,6 +66,7 @@ int c(int p1) {
 	r = ADCW;
 	ADCSRA=0;
 #endif
+*/
 	return r;
 }
 

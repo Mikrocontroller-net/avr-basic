@@ -1,11 +1,16 @@
-/*
+/*----------------------------------------------------------------------
+ * 
  *           Uwe Berger (bergeruw@gmx.net); 2010
  *           ===================================
+ * 
  * Einige Defines, die hauptsaechlich den uBasic-Sprachumfang und die 
  * Zielplattform steuern.
  *
  *
- */
+ * ---------
+ * Have fun!
+ * 
+ ----------------------------------------------------------------------*/
 #ifndef __UBASIC_CONFIG_H__
 #define __UBASIC_CONFIG_H__
 
@@ -29,7 +34,7 @@
 
 // max. Stringlaenge (Basic)
 #ifndef MAX_STRINGLEN
-	#define MAX_STRINGLEN 20
+	#define MAX_STRINGLEN 80
 #endif
 
 // max. Schachtelungstiefe fuer GOSUB (Basic)
@@ -66,6 +71,9 @@
 #define UBASIC_PRINT	1
 #define UBASIC_RND		1
 #define UBASIC_HEX_BIN	1
+
+// externe Unterprogramme (via gosub)
+#define UBASIC_EXT_PROC		1
 
 // exit(1) in Fehlersituationen macht sich bei AVRs etwas schlecht...
 #ifndef BREAK_NOT_EXIT

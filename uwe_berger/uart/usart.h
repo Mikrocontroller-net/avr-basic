@@ -71,7 +71,7 @@
 		#define UBRR UBRRL
 	#endif
 	
-	#if defined (__AVR_ATmega88__) || defined (__AVR_ATmega168__)
+	#if defined (__AVR_ATmega88__) || defined (__AVR_ATmega168__) || defined (__AVR_ATmega328P__)
 		#define USR UCSR0A
 		#define UCR UCSR0B
 		#define UBRR UBRR0L

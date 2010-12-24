@@ -16,9 +16,12 @@
 * 
 * ----------------------------------------------------------------------------*/
 
-#include "tokenizer_access.h"
-#include "ubasic.h"
+#include "avr_basic/ubasic_config.h"
+#include "avr_basic/tokenizer_access.h"
+#include "avr_basic/ubasic.h"
+#include "avr_basic/ubasic_ext_proc.h"
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 
@@ -27,6 +30,9 @@
 /*---------------------------------------------------------------------------*/
 int main(int argc, char* argv[]) {
 
+#if UBASIC_EXT_PROC
+	extern char current_proc[MAX_PROG_NAME_LEN];
+#endif
 	// ist in tokenizer_access.c deklariert...
 	extern FILE *f;
 
@@ -46,6 +52,10 @@ int main(int argc, char* argv[]) {
 		printf("Fehler beim Oeffnen der Datei: %s\n", argv[1]);
 		exit(1);
 	}
+
+	#if UBASIC_EXT_PROC
+		strncpy(current_proc, argv[1], MAX_PROG_NAME_LEN);
+	#endif
 
 	// Basic-Programm interpretieren
 	ubasic_init(0);

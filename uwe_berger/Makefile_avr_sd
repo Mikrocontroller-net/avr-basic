@@ -1,0 +1,57 @@
+# 
+# Makefile fuer ubasic auf einem AVR
+#
+#
+
+#MCU		= atmega168
+MCU		= atmega328p
+#MCU		= atmega644p
+TARGET_ARCH     = -mmcu=$(MCU)
+OBJECTS         = ubasic_avr_sd.o uart/usart.o 
+OBJECTS        += sd_card/byteordering.o sd_card/fat.o sd_card/partition.o sd_card/sd_raw.o 
+OBJECTS        += sd_card/my_fat.o
+OBJECTS        += mem_check/mem_check.o
+OBJECTS        += avr_basic/ubasic.o avr_basic/tokenizer.o avr_basic/ubasic_call.o 
+OBJECTS        += avr_basic/ubasic_cvars.o avr_basic/tokenizer_access.o avr_basic/ubasic_avr.o
+OBJECTS        += avr_basic/ubasic_ext_proc.o
+AVRDUDE_PROGRAMMER = usbasp
+TARGET	= ubasic_avr_sd
+
+
+CC      = avr-gcc
+CFLAGS  = -Os -g -Wall -std=gnu99 -I. 
+CFLAGS  += -fno-strict-aliasing
+CFLAGS  += -finline-limit=4 -fno-if-conversion -mcall-prologues
+CFLAGS  += -funsigned-char  -funsigned-bitfields -fpack-struct -fshort-enums
+# -fno-tree-scev-cprop and -fno-split-wide-types since avr-gcc 4.3.0
+CFLAGS  += -fno-tree-scev-cprop -fno-split-wide-types 
+
+CFLAGS  += -DF_CPU=16000000UL
+CFLAGS  += -DUSE_AVR=1
+CFLAGS  += -DACCESS_VIA_SDCARD=1
+ASFLAGS = -Os -g -Wall -I.
+LDFLAGS = -g
+#LDFLAGS += -Wl,--relax
+MODULES = $(OBJECTS)
+
+
+all:	ubasic_avr_sd.hex
+
+clean:
+	rm -f *.hex *.elf *.o *.d uart/*.o sd_card/*.o mem_check/*.o avr_basic/*.o
+
+ubasic_avr_sd.elf: $(MODULES)
+	$(LINK.o) -o $@ $(MODULES)
+
+ubasic_avr_sd.hex: ubasic_avr_sd.elf
+	avr-objcopy -j .text -j .data -O ihex ubasic_avr_sd.elf ubasic_avr_sd.hex
+	avr-size ubasic_avr_sd.hex
+
+disasm: main.elf
+	avr-objdump -S ubasic_avr_sd.elf
+
+flash:
+	avrdude -p $(MCU) -c $(AVRDUDE_PROGRAMMER) -U flash:w:$(TARGET).hex	
+
+ubasic_avr_sd.o: ubasic_avr_sd.c
+

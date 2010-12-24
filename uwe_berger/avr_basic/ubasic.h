@@ -35,7 +35,6 @@
 
 
 
-// Error-Nummern
 #define SYNTAX_ERROR			1
 #define UNKNOWN_ADC_CHANNEL		2
 #define UNKNOWN_IO_PORT			3
@@ -45,9 +44,11 @@
 #define UNKNOWN_CALL_FUNCT_TYP	7
 #define UNKNOWN_CVAR_NAME		8
 #define SHORT_IF_WITH_ELSE		9
-
-
-
+#define GOSUB_STACK_DETH		10
+#define FOR_STACK_DETH			11
+#define GOSUB_STACK_INVALID		12
+#define UNKNOWN_SUBPROC			13
+#define GOSUB_NO_EXT_SUBPROC    14	
 
 int current_linenum;
 

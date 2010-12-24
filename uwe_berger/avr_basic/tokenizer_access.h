@@ -34,26 +34,15 @@
 #ifndef __TOKENIZER_ACCESS_H__
 #define __TOKENIZER_ACCESS_H__
 
-
-// Basic-Quelltext steht im RAM/SRAM...
-#if ACCESS_VIA_SRAM
-	#define PTR_TYPE char const *
-	#ifdef __TOKENIZER_C__
-		static PTR_TYPE ptr;
-	#endif
-	#define PROG_PTR 					ptr
-	#define GET_CONTENT_PROG_PTR		*ptr
-	#define SET_PROG_PTR_ABSOLUT(param)	(PROG_PTR = (param))
-		// INCR_PROG_PTR: besser waere natuerlich ptr++ ...:-)
-	#define INCR_PROG_PTR				(SET_PROG_PTR_ABSOLUT(PROG_PTR+1))
-	#define END_OF_PROG_TEXT			GET_CONTENT_PROG_PTR == 0
-#endif
-
-// Basic-Quelltext steht im Flash...
+// Basic-Quelltexte steht im Flash... (AVR)
 #if ACCESS_VIA_PGM
 	#define PTR_TYPE char const *
 	#ifdef __TOKENIZER_C__
-		static PTR_TYPE ptr;
+		//static PTR_TYPE ptr;
+		PTR_TYPE ptr;
+	#endif
+	#ifdef __UBASIC_EXT_PROC_C__
+		extern PTR_TYPE ptr;
 	#endif
 	#define PROG_PTR 					ptr
 	#define GET_CONTENT_PROG_PTR		pgm_read_byte(ptr)
@@ -62,7 +51,32 @@
 	#define END_OF_PROG_TEXT			GET_CONTENT_PROG_PTR == 0
 #endif
 
-// Basic-Quelltext steht in einer Datei...
+// Basic-Quelltext steht in einer Datei auf SD-Card... (AVR)
+#if ACCESS_VIA_SDCARD
+	// Definitionen
+	#define PTR_TYPE long int
+	#ifdef __TOKENIZER_ACCESS_C__
+		PTR_TYPE ptr;
+	#endif
+	#ifdef __TOKENIZER_C__	
+		extern PTR_TYPE ptr;
+	#endif
+	#ifdef __UBASIC_EXT_PROC_C__
+		extern PTR_TYPE ptr;
+	#endif
+	#define PROG_PTR 					ptr
+	#define GET_CONTENT_PROG_PTR		get_content()
+	#define SET_PROG_PTR_ABSOLUT(param)	set_ptr(param)
+	#define INCR_PROG_PTR				incr_ptr()
+	#define END_OF_PROG_TEXT			is_eof()
+	// Prototypen der Zugriffsroutinen
+	char get_content(void);
+	void set_ptr(PTR_TYPE offset);
+	void incr_ptr(void);
+	char is_eof(void);
+#endif
+
+// Basic-Quelltext steht in einer Datei... (Linux)
 #if ACCESS_VIA_FILE
 	// Definitionen
 	#define PTR_TYPE long
@@ -70,6 +84,9 @@
 		PTR_TYPE ptr;
 	#endif
 	#ifdef __TOKENIZER_C__	
+		extern PTR_TYPE ptr;
+	#endif
+	#ifdef __UBASIC_EXT_PROC_C__
 		extern PTR_TYPE ptr;
 	#endif
 	#define PROG_PTR 					ptr

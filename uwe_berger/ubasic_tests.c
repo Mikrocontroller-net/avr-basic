@@ -1,3 +1,19 @@
+/*--------------------------------------------------------
+*  Basic-Testprogramme & entspr. Zugriffsroutinen 
+*               fuer AVR-PROGMEM
+*  ==============================================
+*         Uwe Berger (bergeruw@gmx.net); 2010
+* 
+*
+* 
+* ---------
+* Have fun!
+*
+----------------------------------------------------------*/
+
+#include <avr/pgmspace.h>
+#include "avr_basic/ubasic_ext_proc.h"
+#include "ubasic_tests.h"
 
 
 const char prog0[] PROGMEM=
@@ -69,11 +85,12 @@ const char prog6[] PROGMEM=
 10 dir(\"b\",1)=1\n\
 20 a=0\n\
 30 a=a+1\n\
-40 if (a%2)=1 then out(\"b\",1)=0 else out(\"b\",1)=1\n\
-50 print \"a=\";a;\", adc(0)=\";adc(0)\n\
-50 wait 1000\n\
-60 goto 30\n\
-70 end\n\
+40 if a>1 a=0\n\
+50 if (a%2)=1 then out(\"b\",1)=0 else out(\"b\",1)=1\n\
+60 print \"a=\";a;\", adc(0)=\";adc(0)\n\
+70 wait 1000\n\
+80 goto 30\n\
+90 end\n\
 ";
 
 const char prog7[] PROGMEM=
@@ -284,11 +301,81 @@ const char prog26[] PROGMEM=
 110 return\n\
 ";
 
+const char prog27[] PROGMEM=
+"\
+10 print \"Hauptprogramm\"\n\
+20 a=42\n\
+30 gosub \"up1\"\n\
+40 print \"wieder Hauptprogramm\"\n\
+50 print a\n\
+60 end\n\
+";
 
-const char *progs[] PROGMEM = 	{
-								prog0, prog1, prog2, prog3, prog4, prog5, 
-								prog6, prog7, prog8, prog9, prog10, prog11,
-								prog12, prog13, prog14, prog15, prog16, prog17,
-								prog18, prog19, prog20, prog21, prog22, prog23,
-								prog24, prog25, prog26
-								};
+const char prog28[] PROGMEM=
+"\
+10 print \"Unterprogramm\"\n\
+30 print a\n\
+40 a=4711\n\
+50 return\n\
+";
+
+
+static const struct progs_t progs[] PROGMEM = {
+	{"prog0",  prog0 },
+	{"prog1",  prog1 },
+	{"prog2",  prog2 },
+	{"prog3",  prog3 },
+	{"prog4",  prog4 },
+	{"prog5",  prog5 },
+	{"prog6",  prog6 },
+	{"prog7",  prog7 },
+	{"prog8",  prog8 },
+	{"prog9",  prog9 },
+	{"prog10", prog10},
+	{"prog11", prog11},
+	{"prog12", prog12},
+	{"prog13", prog13},
+	{"prog14", prog14},
+	{"prog15", prog15},
+	{"prog16", prog16},
+	{"prog17", prog17},
+	{"prog18", prog18},
+	{"prog19", prog19},
+	{"prog20", prog20},
+	{"prog21", prog21},
+	{"prog22", prog22},
+	{"prog23", prog23},
+	{"prog24", prog24},
+	{"prog25", prog25},
+	{"prog26", prog26},
+	{"extgo",  prog27},
+	{"up1",    prog28},
+	{"extgo1",  prog27}
+};
+
+
+//************************************************************************
+signed char get_program_pgm_idx(char *p_name) {
+	unsigned char i=0;
+	while (i<sizeof(progs)/sizeof(progs[0]) &&
+	       strncmp_P(p_name, progs[i].name, MAX_PROG_NAME_LEN)) {
+		i++;
+	}
+	if (i<sizeof(progs)/sizeof(progs[0])) return i; else return -1;
+}
+
+//************************************************************************
+const char* get_program_pgm_ptr(unsigned char i) {
+	return (const char*)(pgm_read_word(&(progs[i].prog)));
+}
+
+//************************************************************************
+signed char get_program_pgm_count(void) {
+	return (sizeof(progs)/sizeof(progs[0]));
+}
+
+//************************************************************************
+const char* get_program_pgm_name(unsigned char i) {
+	//strcpy_P(p_name, progs[i].name);
+	return progs[i].name;
+}

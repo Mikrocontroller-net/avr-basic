@@ -13,6 +13,34 @@
 	#include "tokenizer_access.h"
 #undef __TOKENIZER_ACCESS_C__
 
+#if ACCESS_VIA_SDCARD
+	#include "sd_card/fat.h"
+	
+	static unsigned char c;
+	static unsigned char eof;
+	struct fat_file_struct* fd;
+
+	//------------------------------------------
+	char get_content(void) {
+		return c;
+	}
+	//------------------------------------------
+	void set_ptr(PTR_TYPE offset) {
+		ptr = offset;
+		fat_seek_file(fd, &offset, FAT_SEEK_SET);
+		if (!fat_read_file(fd, &c, 1)) eof=1; else eof=0;
+	}
+	//------------------------------------------
+	void incr_ptr(void) {
+		ptr++;
+		if (!fat_read_file(fd, &c, 1)) eof=1; else eof=0;
+	}
+	//------------------------------------------
+	char is_eof(void) {
+		if (eof) return 1; else return 0;
+	}
+#endif
+
 #if ACCESS_VIA_FILE
 	#include <stdio.h>
 	static char c;

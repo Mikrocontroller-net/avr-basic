@@ -33,20 +33,16 @@
 
 #define DEBUG 0
 
-#if DEBUG
-	#define DEBUG_PRINTF(...)  usart_write(__VA_ARGS__)
-//	#define DEBUG_PRINTF(...)  printf(__VA_ARGS__)
-#else
-	#define DEBUG_PRINTF(...)
-#endif
 
 #include "tokenizer_access.h"
 #include "ubasic.h"
 #include "tokenizer.h"
 #include "ubasic_config.h"
+#include "ubasic_ext_proc.h"
 
 #if !USE_AVR
 	#include <stdio.h>
+	#include <string.h>
 	#if UBASIC_RND
 		#include <time.h>
 	#endif
@@ -60,29 +56,31 @@
 	#include "ubasic_cvars.h"
 #endif
 
+
 #if USE_AVR
-	#include "usart.h"
+	#include "../uart/usart.h"
+	#include <avr/io.h>
+	#include "ubasic_avr.h"
 #endif
 
-#if AVR_EPEEK || AVR_EPOKE
-	#include <avr/eeprom.h>
-#endif
-
-#if AVR_WAIT
-	#include <util/delay.h>
+#if UBASIC_EXT_PROC
+	extern char current_proc[MAX_PROG_NAME_LEN];
 #endif
 
 #if !BREAK_NOT_EXIT
 	#include <stdlib.h> /* exit() */
 #endif
 
-static PTR_TYPE program_ptr;
+PTR_TYPE program_ptr;
 
-//#if UBASIC_PRINT
-//static char string[MAX_STRINGLEN];
-//#endif
+struct gosub_stack_t {
+#if UBASIC_EXT_PROC
+	char p_name[MAX_PROG_NAME_LEN];
+#endif
+	PTR_TYPE p_ptr;
+};
 
-static PTR_TYPE gosub_stack[MAX_GOSUB_STACK_DEPTH];
+static struct gosub_stack_t gosub_stack[MAX_GOSUB_STACK_DEPTH];
 static int gosub_stack_ptr;
 
 struct for_state {
@@ -98,6 +96,9 @@ static int for_stack_ptr;
 
 #if USE_LINENUM_CACHE
 struct linenum_cache_t {
+#if UBASIC_EXT_PROC
+	char p_name[MAX_PROG_NAME_LEN];
+#endif
 	int linenum;
 	PTR_TYPE next_line_ptr;
 };
@@ -109,7 +110,7 @@ static int linenum_cache_ptr;
 
 static int variables[MAX_VARNUM];
 
-static uint8_t ended;
+static unsigned char ended;
 
 int expr(void);
 static void line_statement(void);
@@ -122,7 +123,7 @@ static long unsigned int rand31_next(void);
 void
 ubasic_init(PTR_TYPE program)
 {
-	uint8_t i;
+	unsigned char i;
 	program_ptr = program;
 	for_stack_ptr = gosub_stack_ptr = 0;
 #if USE_LINENUM_CACHE
@@ -150,12 +151,9 @@ void
 accept(int token)
 {
   if(token != tokenizer_token()) {
-    DEBUG_PRINTF("Token not what was expected (expected %i, got %i)\r\n",
-		 token, tokenizer_token());
     tokenizer_error_print(current_linenum, SYNTAX_ERROR);
     ubasic_break();
   }
-  DEBUG_PRINTF("Expected %i, got it\r\n", token);
   tokenizer_next();
 }
 /*---------------------------------------------------------------------------*/
@@ -163,7 +161,6 @@ static int
 varfactor(void)
 {
   int r;
-  DEBUG_PRINTF("varfactor: obtaining %i from variable %i\r\n", variables[tokenizer_variable_num()], tokenizer_variable_num());
   r = ubasic_get_variable(tokenizer_variable_num());
   accept(TOKENIZER_VARIABLE);
   return r;
@@ -173,17 +170,12 @@ static int
 factor(void)
 {
   int r=0;
-  #if AVR_IN || AVR_ADC || AVR_EPEEK 
-  int adr;
-  const char *port;
-  char pin;
-  #endif
   #if UBASIC_RND
   int b;
   #endif
   
-  DEBUG_PRINTF("factor: token %i\n\r", tokenizer_token());
   switch(tokenizer_token()) {
+
   case TOKENIZER_NUMBER:
     r = tokenizer_num();
     accept(TOKENIZER_NUMBER);
@@ -252,84 +244,19 @@ factor(void)
 
   #if AVR_EPEEK
   case TOKENIZER_EPEEK:
-    accept(TOKENIZER_EPEEK);
-    accept(TOKENIZER_LEFTPAREN);
-    adr = expr();
-    r = eeprom_read_byte((unsigned char *)adr);
-    accept(TOKENIZER_RIGHTPAREN);
+    r=epeek_expression();
     break;
   #endif
   
   #if AVR_ADC
   case TOKENIZER_ADC:
-    accept(TOKENIZER_ADC);
-    accept(TOKENIZER_LEFTPAREN);
-	pin=expr();
-	if ((pin<0)||(pin>ADC_COUNT_MAX)) {
-		//Fehlerfall
-		DEBUG_PRINTF("adc_token: unknown channel %c\r\n", pin);
-	    tokenizer_error_print(current_linenum, UNKNOWN_ADC_CHANNEL);
-		ubasic_break();
-	} else {
-		// ADC_Kanal und Referenzspannung (hier Avcc) einstellen
-		ADMUX =  pin;
-		ADMUX |= (1<<REFS0);
-		// Prescaler 8:1 und ADC aktivieren
-		ADCSRA = (1<<ADEN) | (1<<ADPS1) | (1<<ADPS0);
-		// eine ADC-Wandlung fuer eine Dummy-Messung
-		ADCSRA |= (1<<ADSC);              
-		while (ADCSRA & (1<<ADSC));
-		r = ADCW;
-		// eigentliche Messung
-		ADCSRA |= (1<<ADSC);  
-		while (ADCSRA & (1<<ADSC));
-		r = ADCW;
-		// ADC wieder ausschalten
-		ADCSRA=0;
-	}	
-    accept(TOKENIZER_RIGHTPAREN);
+	r=adc_expression();
     break;
   #endif
     
   #if AVR_IN
   case TOKENIZER_IN:
-    accept(TOKENIZER_IN);
-    accept(TOKENIZER_LEFTPAREN);
-    accept(TOKENIZER_STRING);
-	port=tokenizer_last_string_ptr();
-	accept(TOKENIZER_COMMA);
-	pin=expr();
-    accept(TOKENIZER_RIGHTPAREN);
-		switch (*port) {
-		#if HAVE_PORTA
-		case 'a':
-		case 'A':
-			if (bit_is_clear(PINA, pin)) r=0; else r=1;
-			break;
-		#endif
-		#if HAVE_PORTB
-		case 'b':
-		case 'B':
-			if (bit_is_clear(PINB, pin)) r=0; else r=1;
-			break;
-		#endif
-		#if HAVE_PORTC
-		case 'c':
-		case 'C':
-			if (bit_is_clear(PINC, pin)) r=0; else r=1;
-			break;
-		#endif
-		#if HAVE_PORTD
-		case 'd':
-		case 'D':
-			if (bit_is_clear(PIND, pin)) r=0; else r=1;
-			break;
-		#endif
-		default:
-			DEBUG_PRINTF("in_token: unknown port %c\r\n", port);
-		    tokenizer_error_print(current_linenum, UNKNOWN_IO_PORT);
-			ubasic_break();
-		}
+	r=pin_in_expression();
     break;
   #endif
   
@@ -348,13 +275,11 @@ term(void)
 
   f1 = factor();
   op = tokenizer_token();
-  DEBUG_PRINTF("term: token %i\n\r", op);
   while(op == TOKENIZER_ASTR  ||
 		op == TOKENIZER_SLASH ||
 		op == TOKENIZER_MOD) {
     tokenizer_next();
     f2 = factor();
-    DEBUG_PRINTF("term: %i %i %i\r\n", f1, op, f2);
     switch(op) {
     case TOKENIZER_ASTR:
       f1 = f1 * f2;
@@ -368,7 +293,6 @@ term(void)
     }
     op = tokenizer_token();
   }
-  DEBUG_PRINTF("term: %i\r\n", f1);
   return f1;
 }
 /*---------------------------------------------------------------------------*/
@@ -380,7 +304,6 @@ expr(void)
   
   t1 = term();
   op = tokenizer_token();
-  DEBUG_PRINTF("expr: token %i\r\n", op);
   while(op == TOKENIZER_PLUS  ||
 		op == TOKENIZER_MINUS ||
 		op == TOKENIZER_AND   ||
@@ -396,7 +319,6 @@ expr(void)
 		op == TOKENIZER_OR) {
     tokenizer_next();
     t2 = term();
-    DEBUG_PRINTF("expr: %i %i %i\r\n", t1, op, t2);
     switch(op) {
     case TOKENIZER_PLUS:
       t1 = t1 + t2;
@@ -429,7 +351,6 @@ expr(void)
     }
     op = tokenizer_token();
   }
-  DEBUG_PRINTF("expr: %i\r\n", t1);
   return t1;
 }
 /*---------------------------------------------------------------------------*/
@@ -441,7 +362,6 @@ relation(void)
   
   r1 = expr();
   op = tokenizer_token();
-  DEBUG_PRINTF("relation: token %i\r\n", op);
   while(op == TOKENIZER_LT ||
 		op == TOKENIZER_GT ||
 		op == TOKENIZER_GE ||
@@ -450,7 +370,6 @@ relation(void)
 		op == TOKENIZER_EQ) {
     tokenizer_next();
     r2 = expr();
-    DEBUG_PRINTF("relation: %i %i %i\r\n", r1, op, r2);
     switch(op) {
     case TOKENIZER_LT:
       r1 = r1 < r2;
@@ -481,10 +400,15 @@ jump_linenum(int linenum)
 {
 	
 #if USE_LINENUM_CACHE	
-	uint8_t i;
+	unsigned char i;
 	// zuerst die Zeilennummer im Cache suchen
 	for (i=0; i<linenum_cache_ptr; i++){
-		if (linenum_cache[i].linenum == linenum) {
+		//PRINTF("DEBUG (jump_linenum): l=%i, n=%s\n\r", linenum_cache[i].linenum, linenum_cache[i].p_name);
+		if (linenum_cache[i].linenum == linenum
+			#if UBASIC_EXT_PROC
+				&& strncmp(current_proc, linenum_cache[i].p_name, MAX_PROG_NAME_LEN) == 0
+			#endif 		
+			) {
 			jump_to_prog_text_pointer(linenum_cache[i].next_line_ptr);
 			return;	
 		}
@@ -495,7 +419,6 @@ jump_linenum(int linenum)
 		do {
 			jump_to_next_linenum();
 		} while(tokenizer_token() != TOKENIZER_NUMBER);
-		DEBUG_PRINTF("jump_linenum: Found line %i\r\n", tokenizer_num());
 	}
 
 #if USE_LINENUM_CACHE	
@@ -504,6 +427,9 @@ jump_linenum(int linenum)
 	if (linenum_cache_ptr < MAX_LINENUM_CACHE_DEPTH) {
 		linenum_cache[linenum_cache_ptr].next_line_ptr=get_prog_text_pointer();
 		linenum_cache[linenum_cache_ptr].linenum=linenum;
+		#if UBASIC_EXT_PROC
+		strncpy(linenum_cache[linenum_cache_ptr].p_name, current_proc, MAX_PROG_NAME_LEN);
+		#endif
 		linenum_cache_ptr++;
 	}
 #endif
@@ -520,11 +446,10 @@ goto_statement(void)
 static void
 print_statement(void)
 {
-	uint8_t nl;
+	unsigned char nl;
 	accept(TOKENIZER_PRINT);
 	do {
 		nl=1;
-		DEBUG_PRINTF("Print loop\r\n");
 		if(tokenizer_token() == TOKENIZER_STRING) {
 			PRINTF("%s", tokenizer_last_string_ptr());
 			tokenizer_next();
@@ -572,7 +497,6 @@ print_statement(void)
 			tokenizer_token() != TOKENIZER_ENDOFINPUT);
 	// wenn "," oder ";" am Zeilenende, dann kein Zeilenvorschub
 	if (nl) PRINTF("\n\r");
-	DEBUG_PRINTF("End of print\r\n");
 	tokenizer_next();
 }
 #endif
@@ -581,7 +505,7 @@ static void
 if_statement(void)
 {
 	int r;
-	uint8_t no_then=0;
+	unsigned char no_then=0;
   
 	accept(TOKENIZER_IF);
 	r = relation();
@@ -624,7 +548,6 @@ let_statement(void)
 	accept(TOKENIZER_VARIABLE);
 	accept(TOKENIZER_EQ);
 	ubasic_set_variable(var, expr());
-	DEBUG_PRINTF("let_statement: assign %i to %i\r\n", variables[var], var);
 	tokenizer_next();
 }
 /*---------------------------------------------------------------------------*/
@@ -633,6 +556,18 @@ gosub_statement(void)
 {
 	int linenum;
 	accept(TOKENIZER_GOSUB);
+	
+#if UBASIC_EXT_PROC
+	char p_name[MAX_PROG_NAME_LEN]="";
+	if (tokenizer_token() == TOKENIZER_STRING) {
+		strncpy(p_name, tokenizer_last_string_ptr(), MAX_PROG_NAME_LEN);
+		jump_to_next_linenum();
+	} else
+#endif	
+	if (tokenizer_token() == TOKENIZER_STRING) {
+	    tokenizer_error_print(current_linenum, GOSUB_NO_EXT_SUBPROC);
+    	ubasic_break();		
+	}
 	linenum = expr();
 	// es muss bis zum Zeilenende gelesen werden, um die Rueck-
 	// sprungzeile fuer return zu ermitteln
@@ -641,12 +576,20 @@ gosub_statement(void)
 	// ok ist), deshalb nur noch ein Token weiterlesen!
 	tokenizer_next();
 	if(gosub_stack_ptr < MAX_GOSUB_STACK_DEPTH) {
-		gosub_stack[gosub_stack_ptr] = get_prog_text_pointer();
-		DEBUG_PRINTF("gosub_statement: gosub_stack=%i\r\n", gosub_stack[gosub_stack_ptr]);
+		gosub_stack[gosub_stack_ptr].p_ptr = get_prog_text_pointer();
+		#if UBASIC_EXT_PROC
+			strncpy(gosub_stack[gosub_stack_ptr].p_name, current_proc, MAX_PROG_NAME_LEN);
+		#endif
 		gosub_stack_ptr++;
+#if UBASIC_EXT_PROC
+		if (p_name[0]) {
+			switch_proc(p_name);
+		} else
+#endif		
 		jump_linenum(linenum);
 	} else {
-		DEBUG_PRINTF("gosub_statement: gosub stack exhausted\r\n");
+	    tokenizer_error_print(current_linenum, GOSUB_STACK_DETH);
+    	ubasic_break();
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -656,9 +599,16 @@ return_statement(void)
 	accept(TOKENIZER_RETURN);
 	if(gosub_stack_ptr > 0) {
 		gosub_stack_ptr--;
-		jump_to_prog_text_pointer(gosub_stack[gosub_stack_ptr]);
+		#if UBASIC_EXT_PROC
+			// wenn nicht gleiches Programm, dann erstmal umschalten...
+			if (strncmp(current_proc, gosub_stack[gosub_stack_ptr].p_name, MAX_PROG_NAME_LEN)){
+				switch_proc(gosub_stack[gosub_stack_ptr].p_name);
+			}
+		#endif		
+		jump_to_prog_text_pointer(gosub_stack[gosub_stack_ptr].p_ptr);
 	} else {
-		DEBUG_PRINTF("return_statement: non-matching return\r\n");
+	    tokenizer_error_print(current_linenum, GOSUB_STACK_INVALID);
+    	ubasic_break();
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -681,7 +631,6 @@ next_statement(void)
       accept(TOKENIZER_CR);
     }
   } else {
-    DEBUG_PRINTF("next_statement: non-matching next (expected %i, found %i)\r\n", for_stack[for_stack_ptr - 1].for_variable, var);
     accept(TOKENIZER_CR);
   }
 
@@ -713,21 +662,16 @@ for_statement(void)
   }
   if (downto) step *= -1;
   accept(TOKENIZER_CR);
-
   if(for_stack_ptr < MAX_FOR_STACK_DEPTH) {
     for_stack[for_stack_ptr].next_line_ptr = get_prog_text_pointer();
     for_stack[for_stack_ptr].for_variable = for_variable;
     for_stack[for_stack_ptr].to = to;
     for_stack[for_stack_ptr].step = step;
     for_stack[for_stack_ptr].downto = downto;
-    
-    DEBUG_PRINTF("for_statement: new for, var %i to %i\r\n",
-		 for_stack[for_stack_ptr].for_variable,
-		 for_stack[for_stack_ptr].to);
-		 
     for_stack_ptr++;
   } else {
-    DEBUG_PRINTF("for_statement: for stack depth exceeded\r\n");
+    tokenizer_error_print(current_linenum, FOR_STACK_DETH);
+   	ubasic_break();
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -748,147 +692,14 @@ rem_statement(void)
 }
 #endif
 
-/*---------------------------------------------------------------------------*/
-#if AVR_EPOKE
-static void
-epoke_statement(void)
-{
-	int adr, val;
-	accept(TOKENIZER_EPOKE);
-    accept(TOKENIZER_LEFTPAREN);
-    adr = expr();
-    accept(TOKENIZER_RIGHTPAREN);
-    accept(TOKENIZER_EQ);
-	val = expr();
-	eeprom_write_byte((unsigned char *)adr, val);
-	tokenizer_next();
-}
-#endif
-
-/*---------------------------------------------------------------------------*/
-#if AVR_DIR
-static void
-dir_statement(void)
-{
-	const char *port;
-	char pin, val;
-	
-	accept(TOKENIZER_DIR);
-    accept(TOKENIZER_LEFTPAREN);
-    accept(TOKENIZER_STRING);
-	port=tokenizer_last_string_ptr();
-	accept(TOKENIZER_COMMA);
-	pin=expr();
-    accept(TOKENIZER_RIGHTPAREN);
-    accept(TOKENIZER_EQ);
-	if (expr()) val=1; else val=0;
-	//switch (port) {
-	switch (*port) {
-		#if HAVE_PORTA
-		case 'a':
-		case 'A':
-			if (val) DDRA |= (1 << pin); else DDRA &= ~(1 << pin);
-			break;
-		#endif
-		#if HAVE_PORTB
-		case 'b':
-		case 'B':
-			if (val) DDRB |= (1 << pin); else DDRB &= ~(1 << pin);
-			break;
-		#endif
-		#if HAVE_PORTC
-		case 'c':
-		case 'C':
-			if (val) DDRC |= (1 << pin); else DDRC &= ~(1 << pin);
-			break;
-		#endif
-		#if HAVE_PORTD
-		case 'd':
-		case 'D':
-			if (val) DDRD |= (1 << pin); else DDRD &= ~(1 << pin);
-			break;
-		#endif
-		default:
-			DEBUG_PRINTF("dir_statement: unknown port %c\r\n", *port);
-		    tokenizer_error_print(current_linenum, UNKNOWN_IO_PORT);
-			ubasic_break();
-	}
-	tokenizer_next();
-}
-#endif
-
-/*---------------------------------------------------------------------------*/
-#if AVR_OUT
-static void
-out_statement(void)
-{
-	char const *port;
-	char pin, val;
-	
-	accept(TOKENIZER_OUT);
-    accept(TOKENIZER_LEFTPAREN);
-    accept(TOKENIZER_STRING);
-	port=tokenizer_last_string_ptr();
-	accept(TOKENIZER_COMMA);
-	pin=expr();
-    accept(TOKENIZER_RIGHTPAREN);
-    accept(TOKENIZER_EQ);
-	val = expr();
-	switch (*port) {
-		#if HAVE_PORTA
-		case 'a':
-		case 'A':
-			if (val) PORTA |= (1 << pin); else PORTA &= ~(1 << pin);
-			break;
-		#endif
-		#if HAVE_PORTB
-		case 'b':
-		case 'B':
-			if (val) PORTB |= (1 << pin); else PORTB &= ~(1 << pin);
-			break;
-		#endif
-		#if HAVE_PORTC
-		case 'c':
-		case 'C':
-			if (val) PORTC |= (1 << pin); else PORTC &= ~(1 << pin);
-			break;
-		#endif
-		#if HAVE_PORTD
-		case 'd':
-		case 'D':
-			if (val) PORTD |= (1 << pin); else PORTD &= ~(1 << pin);
-			break;
-		#endif
-		default:
-			DEBUG_PRINTF("out_statement: unknown port %c\r\n", port);
-			tokenizer_error_print(current_linenum, UNKNOWN_IO_PORT);
-			ubasic_break();
-	}
-	tokenizer_next();
-}
-#endif
-
-/*---------------------------------------------------------------------------*/
-#if AVR_WAIT
-static void
-wait_statement(void)
-{
-	int delay;
-	accept(TOKENIZER_WAIT);
-	delay=expr();
-	for (int i=0; i<delay; i++) _delay_ms(1);
-	tokenizer_next();
-
-}
-#endif
 
 /*---------------------------------------------------------------------------*/
 #if UBASIC_RND
 #if USE_AVR
 long unsigned int seed = 0;
 static void srand_statement(void) {
-	uint16_t *p = (uint16_t*) (RAMEND+1);
-	extern uint16_t __heap_start;
+	unsigned int *p = (unsigned int*) (RAMEND+1);
+	extern unsigned int __heap_start;
 	accept(TOKENIZER_SRND);
 	while (p >= &__heap_start + 1)
 		seed ^= * (--p);
@@ -919,24 +730,31 @@ statement(void)
     print_statement();
     break;
   #endif
+
   case TOKENIZER_IF:
     if_statement();
     break;
+
   case TOKENIZER_GOTO:
     goto_statement();
     break;
+
   case TOKENIZER_GOSUB:
     gosub_statement();
     break;
+
   case TOKENIZER_RETURN:
     return_statement();
     break;
+
   case TOKENIZER_FOR:
     for_statement();
     break;
+
   case TOKENIZER_NEXT:
     next_statement();
     break;
+
   case TOKENIZER_END:
     end_statement();
     break;
@@ -997,7 +815,6 @@ statement(void)
     break;
     
   default:
-    DEBUG_PRINTF("ubasic.c: statement(): not implemented %i\r\n", token);
     tokenizer_error_print(current_linenum, UNKNOWN_STATEMENT);
     ubasic_break();
   }
@@ -1006,7 +823,6 @@ statement(void)
 static void
 line_statement(void)
 {
-  DEBUG_PRINTF("----------- Line number %i ---------\r\n", tokenizer_num());
   current_linenum = tokenizer_num();
   accept(TOKENIZER_NUMBER);
   statement();
@@ -1017,10 +833,8 @@ void
 ubasic_run(void)
 {
   if(tokenizer_finished()) {
-    DEBUG_PRINTF("uBASIC program finished\r\n");
     return;
   }
-
   line_statement();
 }
 /*---------------------------------------------------------------------------*/

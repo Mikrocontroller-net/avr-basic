@@ -49,7 +49,7 @@
 
 
 #if USE_AVR
-	#include "usart.h"
+	#include "../uart/usart.h"
 #else
 	#include <string.h>
 	#include <ctype.h>
