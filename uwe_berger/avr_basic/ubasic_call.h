@@ -17,14 +17,25 @@
 #define VOID_FUNC_VOID		0
 #define VOID_FUNC_INT		1
 #define INT_FUNC_INT		2
+#define VOID_FUNC_2INT		3
+#define VOID_FUNC_4INT		4
+#define VOID_FUNC_2INT_CHAR	5
 
 // Strukturdefinition fuer Funktionspointertabelle
 typedef struct {
+#if USE_PROGMEM
+	  char funct_name[MAX_NAME_LEN+1];
+#else	
       char *funct_name;
+#endif
+
       union ftp {
-        void (*VoidFuncVoid)(void);
-        void (*VoidFuncInt)	(int);
-        int  (*IntFuncInt)	(int);
+        void (*VoidFuncVoid)	(void);
+        void (*VoidFuncInt)		(int);
+        void (*VoidFunc2Int)	(int, int);
+        void (*VoidFunc4Int)	(int, int, int, int);
+        void (*VoidFunc2IntChar)(int, int, char*);
+        int  (*IntFuncInt)		(int);
       } funct_ptr;
       unsigned char typ;
 } callfunct_t;

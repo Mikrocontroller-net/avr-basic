@@ -14,7 +14,11 @@
 
 // Strukturdefinition fuer Variablenpointertabelle
 typedef struct {
+#if USE_PROGMEM
+	char var_name[MAX_NAME_LEN+1];
+#else	
 	char *var_name;
+#endif
 	int *pvar;
 } cvars_t;
 

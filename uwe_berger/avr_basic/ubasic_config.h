@@ -18,6 +18,9 @@
 // AVR-spezifischen einschalten
 #ifndef USE_AVR
 	#define USE_AVR		1
+	#ifndef USE_LC7981
+		#define USE_LC7981 1
+	#endif
 #endif
 
 // regulaere Standardausgabe
@@ -34,7 +37,7 @@
 
 // max. Stringlaenge (Basic)
 #ifndef MAX_STRINGLEN
-	#define MAX_STRINGLEN 80
+	#define MAX_STRINGLEN 30
 #endif
 
 // max. Schachtelungstiefe fuer GOSUB (Basic)

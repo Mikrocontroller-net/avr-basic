@@ -41,21 +41,36 @@ int vb = 456;
 //--------------------------------------------
 
 // Variablenpointertabelle
+#if USE_PROGMEM
+cvars_t cvars[] PROGMEM = {
+#else
 cvars_t cvars[] = {
+#endif
     {"a", &va},
     {"b", &vb},
-    {NULL, NULL}
+    {"", NULL}
 };
 
 int search_cvars(const char *var_name) {
 	int idx=0;
 	// Variablenname in Tabelle suchen
-	while(cvars[idx].var_name != NULL &&
+#if USE_PROGMEM
+	while((int *)pgm_read_word(&cvars[idx].pvar) != NULL &&
+	      strncasecmp_P(var_name, cvars[idx].var_name, MAX_NAME_LEN)) {
+    	idx++;
+    }
+#else	
+	while(cvars[idx].pvar != NULL &&
 	      strncasecmp(cvars[idx].var_name, var_name, MAX_NAME_LEN)) {
     	idx++;
     }
+#endif
     // keinen Tabelleneintrag gefunden!
-    if (cvars[idx].var_name == NULL) {
+#if USE_PROGMEM
+    if ((int *)pgm_read_word(&cvars[idx].pvar) == NULL) {
+#else    
+    if (cvars[idx].pvar == NULL) {
+#endif
     	tokenizer_error_print(current_linenum, UNKNOWN_CVAR_NAME);
 		ubasic_break();
     }
@@ -64,6 +79,7 @@ int search_cvars(const char *var_name) {
 
 void vpoke_statement(void) {
 	int idx=0;
+	int *var_temp;
 	
 	accept(TOKENIZER_VPOKE);
     accept(TOKENIZER_LEFTPAREN);
@@ -75,13 +91,19 @@ void vpoke_statement(void) {
 	idx=search_cvars(tokenizer_last_string_ptr());
 	accept(TOKENIZER_RIGHTPAREN);
 	accept(TOKENIZER_EQ);
+#if USE_PROGMEM
+	var_temp=(int *)pgm_read_word(&cvars[idx].pvar);
+	*var_temp=expr();
+#else	
 	*cvars[idx].pvar = expr();
+#endif
 	tokenizer_next();
 }
 
 int vpeek_expression(void) {
 	int idx=0;
 	int r=0;
+	int *var_temp;
 
 	accept(TOKENIZER_VPEEK);
 	// Parameterliste wird durch linke Klammer eingeleitet
@@ -92,7 +114,12 @@ int vpeek_expression(void) {
 		tokenizer_next();
 	}
 	idx=search_cvars(tokenizer_last_string_ptr());
+#if USE_PROGMEM
+	var_temp=(int *)pgm_read_word(&cvars[idx].pvar);
+	r=*var_temp;
+#else	
 	r = *cvars[idx].pvar;
+#endif
     accept(TOKENIZER_RIGHTPAREN);
 	return r;
 }

@@ -1,6 +1,6 @@
 /*--------------------------------------------------------
-*      AVR-Basic-Interpreter mit SD-Karte
-*    =====================================
+*      AVR-Basic-Interpreter mit SD-Karte und lc7981
+*    ===============================================
 *     Uwe Berger (bergeruw@gmx.net); 2010
 * 
 * Basic-Programme liegen auf einer SD-Karte. Fuer die SD-
@@ -45,6 +45,8 @@
 #include "avr_basic/ubasic_ext_proc.h"
 #include "avr_basic/ubasic.h"
 
+#include "lc7981/lc7981.h"
+
 //Taktfrequenz
 #ifndef F_CPU
 #define F_CPU 16000000UL
@@ -88,8 +90,13 @@ int main(void){
 	TIMSK0 |= (1 << TOIE0);
 	sei();
 	
-	usart_write("AVR-Basic-Computer; Uwe Berger, 2010\r\n");
-	usart_write("Compiliert am "__DATE__" um "__TIME__"\r\n");
+	usart_write("AVR-Basic-Computer; Uwe Berger, 2010, 2011\n\r");
+	usart_write("Compiliert am "__DATE__" um "__TIME__"\n\r");
+
+#if USE_AVR && USE_LC7981
+	lcd_init(1);
+	lcd_clear();
+#endif
 
 	/* setup sd card slot */
 	while (!sd_raw_init()){

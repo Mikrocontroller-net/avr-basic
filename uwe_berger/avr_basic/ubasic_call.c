@@ -16,6 +16,9 @@
 #include "ubasic_config.h"
 #include "ubasic_call.h"
 
+#if USE_AVR && USE_LC7981
+	#include "../lc7981/lc7981.h"
+#endif
 
 #if USE_AVR
 	#include "../uart/usart.h"
@@ -26,67 +29,36 @@
 
 #if UBASIC_CALL
 
-#define DEBUG 0
-#if DEBUG
-	#define DEBUG_PRINTF(...)  printf(__VA_ARGS__)
-#else
-	#define DEBUG_PRINTF(...)
-#endif
-
-
-//------------------------------------------
-// ein paar Testfunktionen fuer call...
-void a(void) {
-#if USE_AVR
-	//DDRB |= (1 << PB1);
-	//PORTB |= (1 << PB1);
-#endif
-}
-
-void b(int p1) {
-#if USE_AVR
-	//DDRB |= (1 << PB1);
-	//if (p1) PORTB |= (1 << PB1); else PORTB &= ~(1 << PB1);
-#endif
-}
-
-int c(int p1) {
-	int r=0;	
-	r=p1;
-/*
-#if USE_AVR
-	ADMUX =  p1;
-	ADMUX |= (1<<REFS0);
-	ADCSRA = (1<<ADEN) | (1<<ADPS1) | (1<<ADPS0);
-	ADCSRA |= (1<<ADSC);              
-	while (ADCSRA & (1<<ADSC));
-	r = ADCW;
-	ADCSRA |= (1<<ADSC);  
-	while (ADCSRA & (1<<ADSC));
-	r = ADCW;
-	ADCSRA=0;
-#endif
-*/
-	return r;
-}
-
-
 //--------------------------------------------
 
 // Funktionspointertabelle
+#if USE_PROGMEM
+callfunct_t callfunct[] PROGMEM = {
+#else
 callfunct_t callfunct[] = {
-    {"a",	.funct_ptr.VoidFuncVoid=a,	VOID_FUNC_VOID},
-    {"b",	.funct_ptr.VoidFuncInt=b,	VOID_FUNC_INT},
-    {"c",	.funct_ptr.IntFuncInt=c,	INT_FUNC_INT},
-    {NULL, {NULL},	255}
+#endif
+#if USE_AVR && USE_LC7981
+	// lc7981-Routinen...
+    {"clear",	.funct_ptr.VoidFuncVoid=lcd_clear,		VOID_FUNC_VOID},
+    {"pset",	.funct_ptr.VoidFunc2Int=lcd_pset,		VOID_FUNC_2INT},
+    {"line",	.funct_ptr.VoidFunc4Int=line,			VOID_FUNC_4INT},
+    {"rclear",	.funct_ptr.VoidFunc4Int=lcd_clear_rect,	VOID_FUNC_4INT},
+    {"pclear",	.funct_ptr.VoidFunc2Int=lcd_pclear,		VOID_FUNC_2INT},
+    {"puts",	.funct_ptr.VoidFunc2IntChar=lcd_puts,	VOID_FUNC_2INT_CHAR},
+#endif
+    {"",		{NULL},									255}
 };
 
 
 int call_statement(void) {
-	//static char funct_name[MAX_NAME_LEN+1];
+
+	unsigned char f_typ_temp;
 	uint8_t idx=0;
 
 	int p1=0;
+	int p2=0;
+	int p3=0;
+	int p4=0;
 	int r=0;
 	
 	accept(TOKENIZER_CALL);
@@ -94,51 +66,113 @@ int call_statement(void) {
     accept(TOKENIZER_LEFTPAREN);
 	// Funktionsname ermitteln
 	if(tokenizer_token() == TOKENIZER_STRING) {
-		//tokenizer_string(funct_name, sizeof(funct_name));
-		DEBUG_PRINTF("funct_name: %s\n\r", tokenizer_last_string_ptr());
 		tokenizer_next();
 	}
 	// Funktionsname in Tabelle suchen
-	while(callfunct[idx].funct_name != NULL &&
+#if USE_PROGMEM
+	while(pgm_read_byte(&callfunct[idx].typ) != 255 &&
+	      strncasecmp_P(tokenizer_last_string_ptr(), callfunct[idx].funct_name, MAX_NAME_LEN)) {
+    	idx++;
+    }
+    f_typ_temp = pgm_read_byte(&callfunct[idx].typ);
+#else	
+	while(callfunct[idx].typ != 255 &&
 	      strncasecmp(callfunct[idx].funct_name, tokenizer_last_string_ptr(), MAX_NAME_LEN)) {
     	idx++;
     }
-    // einen Tabelleneintrag gefunden!
-    if (callfunct[idx].funct_name == NULL) {
-    	DEBUG_PRINTF("funct_name: %s nicht gefunden!\n\r", tokenizer_last_string_ptr());
+    f_typ_temp = callfunct[idx].typ;
+#endif
+    // keinen Tabelleneintrag gefunden!
+    if (f_typ_temp == 255) {
     	tokenizer_error_print(current_linenum, UNKNOWN_CALL_FUNCT);
 		ubasic_break();
     } else {
-	    DEBUG_PRINTF("funct_name: %s hat Index: %i\n\r", tokenizer_last_string_ptr(), idx);
 		// je nach Funktionstyp (3.Spalte in Funktionspointertabelle) 
 		// Parameterliste aufbauen und Funktion aufrufen
-		switch (callfunct[idx].typ){
-			case VOID_FUNC_VOID: 
-						// ohne Parameter/Rueckgabewert
-						callfunct[idx].funct_ptr.VoidFuncVoid();
+		switch (f_typ_temp){
+			case VOID_FUNC_VOID:
+						;
+						#if USE_PROGMEM
+							void (* f0)(void) = (void (*)(void)) pgm_read_word(&callfunct[idx].funct_ptr.VoidFuncVoid);
+							f0();
+						#else
+							callfunct[idx].funct_ptr.VoidFuncVoid();
+						#endif
 						break;
 			case VOID_FUNC_INT:	
-						// ein Integer und kein Rueckgabewert
 						accept(TOKENIZER_COMMA);
 						p1=expr();
-						callfunct[idx].funct_ptr.VoidFuncInt(p1);
+						#if USE_PROGMEM
+							void (* f1)(int) = (void (*)(int)) pgm_read_word(&callfunct[idx].funct_ptr.VoidFuncInt);
+							f1(p1);
+						#else
+							callfunct[idx].funct_ptr.VoidFuncInt(p1);
+						#endif
+						break;
+			case VOID_FUNC_2INT:	
+						accept(TOKENIZER_COMMA);
+						p1=expr();
+						accept(TOKENIZER_COMMA);
+						p2=expr();
+						#if USE_PROGMEM
+							void (* f2)(int, int) = (void (*)(int, int)) pgm_read_word(&callfunct[idx].funct_ptr.VoidFunc2Int);
+							f2(p1, p2);
+						#else
+							callfunct[idx].funct_ptr.VoidFunc2Int(p1, p2);
+						#endif
+						break;
+			case VOID_FUNC_4INT:	
+						accept(TOKENIZER_COMMA);
+						p1=expr();
+						accept(TOKENIZER_COMMA);
+						p2=expr();
+						accept(TOKENIZER_COMMA);
+						p3=expr();
+						accept(TOKENIZER_COMMA);
+						p4=expr();
+						#if USE_PROGMEM
+							void (* f3)(int, int, int, int) = (void (*)(int, int, int, int)) pgm_read_word(&callfunct[idx].funct_ptr.VoidFunc4Int);
+							f3(p1, p2, p3, p4);
+						#else
+							callfunct[idx].funct_ptr.VoidFunc4Int(p1, p2, p3, p4);
+						#endif
+						break;
+			case VOID_FUNC_2INT_CHAR:	
+						accept(TOKENIZER_COMMA);
+						p1=expr();
+						accept(TOKENIZER_COMMA);
+						p2=expr();
+						accept(TOKENIZER_COMMA);
+						accept(TOKENIZER_STRING);
+						#if USE_PROGMEM
+							void (* f4)(int, int, char*) = (void (*)(int, int, char*)) pgm_read_word(&callfunct[idx].funct_ptr.VoidFunc2IntChar);
+							f4(p1, p2, (char*)tokenizer_last_string_ptr());
+						#else
+							callfunct[idx].funct_ptr.VoidFunc2IntChar(p1, p2, (char*)tokenizer_last_string_ptr());
+						#endif
 						break;
 			case INT_FUNC_INT: 
-						// ein Integer und Rueckgabewert
 						accept(TOKENIZER_COMMA);
 						p1=expr();
-						r=callfunct[idx].funct_ptr.IntFuncInt(p1);
+						#if USE_PROGMEM
+							int (* f5)(int) = (int (*)(int)) pgm_read_word(&callfunct[idx].funct_ptr.IntFuncInt);
+							r=f5(p1);
+						#else
+							r=callfunct[idx].funct_ptr.IntFuncInt(p1);
+						#endif
 						break;
-			default:	DEBUG_PRINTF("Funktionspointertyp %i nicht gefunden\n\r", callfunct[idx].typ);
-						tokenizer_error_print(current_linenum, UNKNOWN_CALL_FUNCT_TYP);
+			default:	tokenizer_error_print(current_linenum, UNKNOWN_CALL_FUNCT_TYP);
 						ubasic_break();
 		}
 	}
 	// abschliessende rechte Klammer
     accept(TOKENIZER_RIGHTPAREN);
     // bei Funktionspointertypen ohne Rueckgabewert ein Token weitergelesen...
-    if ((callfunct[idx].typ == VOID_FUNC_VOID) ||
-    	(callfunct[idx].typ == VOID_FUNC_INT) 
+    if ((f_typ_temp == VOID_FUNC_VOID)		||
+    	(f_typ_temp == VOID_FUNC_INT)		||
+    	(f_typ_temp == VOID_FUNC_2INT)		||
+    	(f_typ_temp == VOID_FUNC_2INT_CHAR)	||
+    	(f_typ_temp == VOID_FUNC_4INT) 
     	) tokenizer_next();
 	return r;
 }
