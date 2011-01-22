@@ -257,7 +257,7 @@ void draw_char(unsigned short x, unsigned short y, char character) {//Grafikmodu
 		for (j = 0; j < FONT_HEIGHT; j++) {
 			/* Check if the bit/pixel is set, paint accoringly to 
 			* the screen */
-			if (Font5x7[FONT_WIDTH*fontIndex+i] & (1<<j))
+			if (pgm_read_byte(&Font5x7[FONT_WIDTH*fontIndex+i]) & (1<<j))
 			lcd_pset(x, y+j);
 			else	
 			lcd_pclear(x, y+j);
