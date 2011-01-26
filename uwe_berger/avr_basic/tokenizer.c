@@ -154,6 +154,9 @@ static const struct keyword_token keywords[] = {
 	#if AVR_ADC
 	{"adc", TOKENIZER_ADC},
 	#endif
+	#if UBASIC_ARRAY
+	{"dim", TOKENIZER_DIM},
+	#endif
 	{"or", TOKENIZER_OR},
 	{"and", TOKENIZER_AND},
 	{"mod", TOKENIZER_MOD},

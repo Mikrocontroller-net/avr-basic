@@ -76,7 +76,13 @@
 #define UBASIC_HEX_BIN	1
 
 // externe Unterprogramme (via gosub)
-#define UBASIC_EXT_PROC		1
+#define UBASIC_EXT_PROC	1
+
+// Variablen als Array definierbar (DIM) und ansprechbar
+// Hinweis: in dem entsprechenden Code werden malloc()/free() verwendet,
+// was, in Kombination mit anderen Routinen ausserhalb des Basic-
+// Interpreters zur Zerstueckelung des Speichers fuehren koennte
+#define UBASIC_ARRAY	1
 
 // exit(1) in Fehlersituationen macht sich bei AVRs etwas schlecht...
 #ifndef BREAK_NOT_EXIT

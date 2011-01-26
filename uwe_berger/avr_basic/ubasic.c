@@ -107,8 +107,15 @@ static struct linenum_cache_t linenum_cache[MAX_LINENUM_CACHE_DEPTH];
 static int linenum_cache_ptr;
 #endif
 
+struct variables_t {
+	int val;
+#if UBASIC_ARRAY
+	int* adr;
+	int dim;
+#endif		
+};
 
-static int variables[MAX_VARNUM];
+static struct variables_t variables[MAX_VARNUM];
 
 static unsigned char ended;
 
@@ -129,7 +136,15 @@ ubasic_init(PTR_TYPE program)
 #if USE_LINENUM_CACHE
 	linenum_cache_ptr = 0;
 #endif
-	for (i=0; i<MAX_VARNUM; i++) variables[i]=0;
+	for (i=0; i<MAX_VARNUM; i++) {
+		variables[i].val=0;
+#if UBASIC_ARRAY
+		// Arrays: vorsichtshalber nochmal pruefen und ggf. reagieren
+		if (!(variables[i].adr == NULL)) free(variables[i].adr);
+		variables[i].adr=NULL;
+		variables[i].dim=0;
+#endif
+	}
 	tokenizer_init(program);
 	ended = 0;
 }
@@ -161,8 +176,8 @@ static int
 varfactor(void)
 {
   int r;
-  r = ubasic_get_variable(tokenizer_variable_num());
   accept(TOKENIZER_VARIABLE);
+  r = ubasic_get_variable(tokenizer_variable_num());
   return r;
 }
 /*---------------------------------------------------------------------------*/
@@ -543,11 +558,20 @@ if_statement(void)
 static void
 let_statement(void)
 {
+	unsigned int idx=0;
 	int var;
 	var = tokenizer_variable_num();
 	accept(TOKENIZER_VARIABLE);
+#if UBASIC_ARRAY	
+	// wenn Variable ein Array, dann noch Index ermitteln
+	if (variables[var].adr) {
+		accept(TOKENIZER_LEFTPAREN);
+		idx=expr();
+		accept(TOKENIZER_RIGHTPAREN);	
+	}
+#endif	
 	accept(TOKENIZER_EQ);
-	ubasic_set_variable(var, expr());
+	ubasic_set_variable(var, expr(), idx);
 	tokenizer_next();
 }
 /*---------------------------------------------------------------------------*/
@@ -621,7 +645,7 @@ next_statement(void)
   var = tokenizer_variable_num();
   accept(TOKENIZER_VARIABLE);
   if(for_stack_ptr > 0 && var == for_stack[for_stack_ptr - 1].for_variable) {
-    ubasic_set_variable(var, ubasic_get_variable(var) + for_stack[for_stack_ptr - 1].step);
+    ubasic_set_variable(var, ubasic_get_variable(var) + for_stack[for_stack_ptr - 1].step, 0);
     if(((ubasic_get_variable(var) <= for_stack[for_stack_ptr - 1].to) && !for_stack[for_stack_ptr - 1].downto)||
        ((ubasic_get_variable(var) >= for_stack[for_stack_ptr - 1].to) && for_stack[for_stack_ptr - 1].downto)
       ) {
@@ -646,7 +670,7 @@ for_statement(void)
   for_variable = tokenizer_variable_num();
   accept(TOKENIZER_VARIABLE);
   accept(TOKENIZER_EQ);
-  ubasic_set_variable(for_variable, expr());
+  ubasic_set_variable(for_variable, expr(),0);
   if (tokenizer_token() == TOKENIZER_TO) {
   	downto = 0;
   } else if (tokenizer_token() == TOKENIZER_DOWNTO) {
@@ -714,6 +738,29 @@ static void srand_statement(void) {
 	tokenizer_next();
 }
 #endif
+#endif
+
+/*---------------------------------------------------------------------------*/
+#if UBASIC_ARRAY
+static void dim_statement(void) {
+	int var, dim;
+	accept(TOKENIZER_DIM);
+	var = tokenizer_variable_num();
+	accept(TOKENIZER_VARIABLE);
+	accept(TOKENIZER_LEFTPAREN);
+	// Dimension des Array
+	dim=expr();
+	variables[var].dim=dim;
+	// Speicher reservieren
+	variables[var].adr=malloc(dim * sizeof(int));
+	// genug Speicher vorhanden?
+	if (variables[var].adr == NULL	) {
+	    tokenizer_error_print(current_linenum, OUT_OF_MEMORY);
+	   	ubasic_break();
+	}
+	accept(TOKENIZER_RIGHTPAREN);
+	accept(TOKENIZER_CR);
+}
 #endif
 
 /*---------------------------------------------------------------------------*/
@@ -807,6 +854,12 @@ statement(void)
     break;
   #endif
 
+  #if UBASIC_ARRAY
+  case TOKENIZER_DIM:
+    dim_statement();
+    break;
+  #endif
+
   case TOKENIZER_LET:
     accept(TOKENIZER_LET);
     /* Fall through. */
@@ -823,42 +876,88 @@ statement(void)
 static void
 line_statement(void)
 {
-  current_linenum = tokenizer_num();
-  accept(TOKENIZER_NUMBER);
-  statement();
-  return;
+	current_linenum = tokenizer_num();
+	accept(TOKENIZER_NUMBER);
+	statement();
+	return;
 }
 /*---------------------------------------------------------------------------*/
 void
 ubasic_run(void)
 {
-  if(tokenizer_finished()) {
-    return;
-  }
-  line_statement();
+#if UBASIC_ARRAY
+	unsigned char i;
+#endif
+	if(tokenizer_finished()) {
+		return;
+	}
+	line_statement();
+#if UBASIC_ARRAY
+	// Speicher ggf. wieder zurueckgeben (Arrays), wenn Programmende
+	if (ended || tokenizer_finished()) {
+		for (i=0; i<MAX_VARNUM; i++) {
+			if (variables[i].adr) free(variables[i].adr);
+			variables[i].adr=NULL;
+			variables[i].dim=0;
+		}
+	}
+#endif	
 }
 /*---------------------------------------------------------------------------*/
 int
 ubasic_finished(void)
 {
-  return ended || tokenizer_finished();
+	return ended || tokenizer_finished();
 }
 /*---------------------------------------------------------------------------*/
 void
-ubasic_set_variable(int varnum, int value)
+ubasic_set_variable(int varnum, int value, unsigned int idx)
 {
-  if(varnum >= 0 && varnum < MAX_VARNUM) {
-    variables[varnum] = value;
-  }
+	if(varnum >= 0 && varnum < MAX_VARNUM) {
+#if UBASIC_ARRAY
+		// handelt es sich um ein Array?
+		if (variables[varnum].adr) {
+			// * Dimension abpruefen
+			if (idx<variables[varnum].dim) {
+				// * Wert setzen
+				variables[varnum].adr[idx]=value;
+			} else {
+			    tokenizer_error_print(current_linenum, ARRAY_OUT_OF_RANGE);
+    			ubasic_break();
+			}
+		} else 
+#endif		
+			variables[varnum].val = value;
+	}
 }
 /*---------------------------------------------------------------------------*/
 int
 ubasic_get_variable(int varnum)
 {
-  if(varnum >= 0 && varnum < MAX_VARNUM) {
-    return variables[varnum];
-  }
-  return 0;
+#if UBASIC_ARRAY
+	unsigned int idx = 0;
+#endif
+	if(varnum >= 0 && varnum < MAX_VARNUM) {
+#if UBASIC_ARRAY
+		// handelt es sich um ein Array?
+		if (variables[varnum].adr) {
+			// * Index in den Klammern ermitteln
+			accept(TOKENIZER_LEFTPAREN);
+			idx=expr();
+			// * damit die Dimension abpruefen
+			if (idx<variables[varnum].dim) {
+				accept(TOKENIZER_RIGHTPAREN);
+				// * Wert ermitteln
+				return variables[varnum].adr[idx];
+			} else {
+			    tokenizer_error_print(current_linenum, ARRAY_OUT_OF_RANGE);
+    			ubasic_break();
+			}
+		} else 
+#endif
+			return variables[varnum].val;
+	}
+	return 0;
 }
 /*---------------------------------------------------------------------------*/
 // Park-Miller "minimal standard" 31Bit pseudo-random generator

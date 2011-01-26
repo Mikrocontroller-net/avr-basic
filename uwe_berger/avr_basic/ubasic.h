@@ -49,6 +49,8 @@
 #define GOSUB_STACK_INVALID		12
 #define UNKNOWN_SUBPROC			13
 #define GOSUB_NO_EXT_SUBPROC    14	
+#define ARRAY_OUT_OF_RANGE		15
+#define OUT_OF_MEMORY           16
 
 int current_linenum;
 
@@ -57,7 +59,7 @@ void ubasic_run(void);
 int ubasic_finished(void);
 
 int ubasic_get_variable(int varnum);
-void ubasic_set_variable(int varum, int value);
+void ubasic_set_variable(int varum, int value, unsigned int);
 
 void accept(int token);
 int expr(void);

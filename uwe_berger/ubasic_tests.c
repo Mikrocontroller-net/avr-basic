@@ -319,6 +319,18 @@ const char prog28[] PROGMEM=
 50 return\n\
 ";
 
+const char prog29[] PROGMEM=
+"\
+10 dim a(10)\n\
+20 for i=0 to 9\n\
+30 a(i) = i\n\
+40 next i\n\
+50 for i=0 to 9\n\
+60 print a(i)\n\
+70 next i\n\
+80 end\n\
+";
+
 
 static const struct progs_t progs[] PROGMEM = {
 	{"prog0",  prog0 },
@@ -350,7 +362,7 @@ static const struct progs_t progs[] PROGMEM = {
 	{"prog26", prog26},
 	{"extgo",  prog27},
 	{"up1",    prog28},
-	{"extgo1",  prog27}
+	{"array",  prog29}
 };
 
 
@@ -376,6 +388,5 @@ signed char get_program_pgm_count(void) {
 
 //************************************************************************
 const char* get_program_pgm_name(unsigned char i) {
-	//strcpy_P(p_name, progs[i].name);
 	return progs[i].name;
 }

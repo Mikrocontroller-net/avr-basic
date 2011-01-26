@@ -79,7 +79,9 @@ int search_cvars(const char *var_name) {
 
 void vpoke_statement(void) {
 	int idx=0;
+#if USE_PROGMEM	
 	int *var_temp;
+#endif
 	
 	accept(TOKENIZER_VPOKE);
     accept(TOKENIZER_LEFTPAREN);
@@ -103,7 +105,9 @@ void vpoke_statement(void) {
 int vpeek_expression(void) {
 	int idx=0;
 	int r=0;
+#if USE_PROGMEM	
 	int *var_temp;
+#endif
 
 	accept(TOKENIZER_VPEEK);
 	// Parameterliste wird durch linke Klammer eingeleitet

@@ -123,6 +123,9 @@ enum {
   #if UBASIC_SHR
   TOKENIZER_SHR,				// 50
   #endif
+  #if UBASIC_ARRAY
+  TOKENIZER_DIM,
+  #endif
   TOKENIZER_GE,
   TOKENIZER_LE,
   TOKENIZER_NE,
