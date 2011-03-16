@@ -157,6 +157,11 @@ static const struct keyword_token keywords[] = {
 	#if UBASIC_ARRAY
 	{"dim", TOKENIZER_DIM},
 	#endif
+	#if UBASIC_DATA
+	{"data", TOKENIZER_DATA},
+	{"read", TOKENIZER_READ},
+	{"restore", TOKENIZER_RESTORE},
+	#endif
 	{"or", TOKENIZER_OR},
 	{"and", TOKENIZER_AND},
 	{"mod", TOKENIZER_MOD},
@@ -172,6 +177,11 @@ static int get_next_token(void);
 /*---------------------------------------------------------------------------*/
 PTR_TYPE get_prog_text_pointer(void) {
 	return last_num_ptr;
+}
+
+/*---------------------------------------------------------------------------*/
+PTR_TYPE get_current_prog_pointer(void) {
+	return PROG_PTR;
 }
 
 /*---------------------------------------------------------------------------*/

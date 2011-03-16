@@ -126,6 +126,11 @@ enum {
   #if UBASIC_ARRAY
   TOKENIZER_DIM,
   #endif
+  #if UBASIC_DATA
+  TOKENIZER_DATA,
+  TOKENIZER_READ,
+  TOKENIZER_RESTORE,
+  #endif
   TOKENIZER_GE,
   TOKENIZER_LE,
   TOKENIZER_NE,
@@ -143,6 +148,7 @@ const char * tokenizer_last_string_ptr(void);
 int tokenizer_finished(void);
 void tokenizer_error_print(int linenum, int error_nr);
 PTR_TYPE get_prog_text_pointer(void);
+PTR_TYPE get_current_prog_pointer(void);
 void jump_to_prog_text_pointer(PTR_TYPE jump_ptr);
 void jump_to_next_linenum(void);
 

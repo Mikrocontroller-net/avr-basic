@@ -63,6 +63,7 @@
 	#include "ubasic_avr.h"
 #endif
 
+// Name des aktuellen Programms
 #if UBASIC_EXT_PROC
 	extern char current_proc[MAX_PROG_NAME_LEN];
 #endif
@@ -71,18 +72,20 @@
 	#include <stdlib.h> /* exit() */
 #endif
 
+// Zeiger auf Anfang des Basic-Programms
 PTR_TYPE program_ptr;
 
+// Gosub-Stack
 struct gosub_stack_t {
 #if UBASIC_EXT_PROC
 	char p_name[MAX_PROG_NAME_LEN];
 #endif
 	PTR_TYPE p_ptr;
 };
-
 static struct gosub_stack_t gosub_stack[MAX_GOSUB_STACK_DEPTH];
 static int gosub_stack_ptr;
 
+// for-next-Stack
 struct for_state {
   PTR_TYPE next_line_ptr;
   int for_variable;
@@ -90,10 +93,10 @@ struct for_state {
   int step;
   char downto;
 };
-
 static struct for_state for_stack[MAX_FOR_STACK_DEPTH];
 static int for_stack_ptr;
 
+// Zeilennummern-Cache (goto)
 #if USE_LINENUM_CACHE
 struct linenum_cache_t {
 #if UBASIC_EXT_PROC
@@ -102,11 +105,11 @@ struct linenum_cache_t {
 	int linenum;
 	PTR_TYPE next_line_ptr;
 };
-
 static struct linenum_cache_t linenum_cache[MAX_LINENUM_CACHE_DEPTH];
 static int linenum_cache_ptr;
 #endif
 
+// Basic-Variablen
 struct variables_t {
 	int val;
 #if UBASIC_ARRAY
@@ -114,14 +117,22 @@ struct variables_t {
 	int dim;
 #endif		
 };
-
 static struct variables_t variables[MAX_VARNUM];
 
+// Merker Basic-Programmende
 static unsigned char ended;
 
+// Programmtextpointer fuer data/read/restore
+#if UBASIC_DATA
+PTR_TYPE first_data;
+PTR_TYPE current_data;
+#endif
+
+// Forwards
 int expr(void);
 static void line_statement(void);
 static void statement(void);
+unsigned int ubasic_get_dim_index(int varnum);
 #if UBASIC_RND && USE_AVR
 static long unsigned int rand31_next(void);
 #endif
@@ -143,6 +154,11 @@ ubasic_init(PTR_TYPE program)
 		if (!(variables[i].adr == NULL)) free(variables[i].adr);
 		variables[i].adr=NULL;
 		variables[i].dim=0;
+#endif
+#if UBASIC_DATA
+	// data-Zeiger initialisieren
+	first_data=0;
+	current_data=0;
 #endif
 	}
 	tokenizer_init(program);
@@ -176,8 +192,10 @@ static int
 varfactor(void)
 {
   int r;
+  unsigned int idx;
   accept(TOKENIZER_VARIABLE);
-  r = ubasic_get_variable(tokenizer_variable_num());
+  idx=ubasic_get_dim_index(tokenizer_variable_num());
+  r = ubasic_get_variable(tokenizer_variable_num(), idx);
   return r;
 }
 /*---------------------------------------------------------------------------*/
@@ -409,6 +427,31 @@ relation(void)
   }
   return r1;
 }
+
+/*---------------------------------------------------------------------------*/
+unsigned int ubasic_get_dim_index(int varnum) {
+#if UBASIC_ARRAY	
+	unsigned int idx;
+	// wenn Variable ein Array, dann Index ermitteln
+	if (variables[varnum].adr) {
+		accept(TOKENIZER_LEFTPAREN);
+		idx=expr();
+		if (idx<variables[varnum].dim) {
+			accept(TOKENIZER_RIGHTPAREN);
+		} else {
+		    tokenizer_error_print(current_linenum, ARRAY_OUT_OF_RANGE);
+   			ubasic_break();
+		}
+		return idx;
+	} else 
+#endif	
+	return 0;
+}
+
+
+
+
+
 /*---------------------------------------------------------------------------*/
 static void
 jump_linenum(int linenum)
@@ -418,7 +461,6 @@ jump_linenum(int linenum)
 	unsigned char i;
 	// zuerst die Zeilennummer im Cache suchen
 	for (i=0; i<linenum_cache_ptr; i++){
-		//PRINTF("DEBUG (jump_linenum): l=%i, n=%s\n\r", linenum_cache[i].linenum, linenum_cache[i].p_name);
 		if (linenum_cache[i].linenum == linenum
 			#if UBASIC_EXT_PROC
 				&& strncmp(current_proc, linenum_cache[i].p_name, MAX_PROG_NAME_LEN) == 0
@@ -430,11 +472,17 @@ jump_linenum(int linenum)
 	}
 #endif	
 	tokenizer_init(program_ptr);
-	while(tokenizer_num() != linenum) {
+	while((tokenizer_num() != linenum) && (tokenizer_token() != TOKENIZER_ENDOFINPUT)) {
 		do {
 			jump_to_next_linenum();
-		} while(tokenizer_token() != TOKENIZER_NUMBER);
+		} while(tokenizer_token() != TOKENIZER_NUMBER && tokenizer_token() != TOKENIZER_ENDOFINPUT);
 	}
+	// Zeilennummer nicht gefunden
+	if (tokenizer_token() == TOKENIZER_ENDOFINPUT) {
+	    tokenizer_error_print(current_linenum, UNKNOWN_LINENUMBER);
+		ubasic_break();			
+	}
+
 
 #if USE_LINENUM_CACHE	
 	// wenn noch im Zeilennummern-Cache Platz ist, Zeilennummer/-Pointer
@@ -562,14 +610,7 @@ let_statement(void)
 	int var;
 	var = tokenizer_variable_num();
 	accept(TOKENIZER_VARIABLE);
-#if UBASIC_ARRAY	
-	// wenn Variable ein Array, dann noch Index ermitteln
-	if (variables[var].adr) {
-		accept(TOKENIZER_LEFTPAREN);
-		idx=expr();
-		accept(TOKENIZER_RIGHTPAREN);	
-	}
-#endif	
+	idx=ubasic_get_dim_index(var);
 	accept(TOKENIZER_EQ);
 	ubasic_set_variable(var, expr(), idx);
 	tokenizer_next();
@@ -595,10 +636,8 @@ gosub_statement(void)
 	linenum = expr();
 	// es muss bis zum Zeilenende gelesen werden, um die Rueck-
 	// sprungzeile fuer return zu ermitteln
-	//jump_to_next_linenum();
-	// ... wg. expr() steht der Parser schon am Zeilenende CR (wenn Syntax 
-	// ok ist), deshalb nur noch ein Token weiterlesen!
-	tokenizer_next();
+	if (tokenizer_token() != TOKENIZER_CR) jump_to_next_linenum();
+	else  tokenizer_next();
 	if(gosub_stack_ptr < MAX_GOSUB_STACK_DEPTH) {
 		gosub_stack[gosub_stack_ptr].p_ptr = get_prog_text_pointer();
 		#if UBASIC_EXT_PROC
@@ -640,14 +679,15 @@ static void
 next_statement(void)
 {
   int var;
-  
+  unsigned int idx;
   accept(TOKENIZER_NEXT);
   var = tokenizer_variable_num();
   accept(TOKENIZER_VARIABLE);
+  idx=ubasic_get_dim_index(var);
   if(for_stack_ptr > 0 && var == for_stack[for_stack_ptr - 1].for_variable) {
-    ubasic_set_variable(var, ubasic_get_variable(var) + for_stack[for_stack_ptr - 1].step, 0);
-    if(((ubasic_get_variable(var) <= for_stack[for_stack_ptr - 1].to) && !for_stack[for_stack_ptr - 1].downto)||
-       ((ubasic_get_variable(var) >= for_stack[for_stack_ptr - 1].to) && for_stack[for_stack_ptr - 1].downto)
+    ubasic_set_variable(var, ubasic_get_variable(var, idx) + for_stack[for_stack_ptr - 1].step, idx);
+    if(((ubasic_get_variable(var, idx) <= for_stack[for_stack_ptr - 1].to) && !for_stack[for_stack_ptr - 1].downto)||
+       ((ubasic_get_variable(var, idx) >= for_stack[for_stack_ptr - 1].to) && for_stack[for_stack_ptr - 1].downto)
       ) {
       jump_to_prog_text_pointer(for_stack[for_stack_ptr - 1].next_line_ptr);
     } else {
@@ -657,20 +697,21 @@ next_statement(void)
   } else {
     accept(TOKENIZER_CR);
   }
-
 }
 /*---------------------------------------------------------------------------*/
 static void
 for_statement(void)
 {
   int for_variable, to, step; 
+  unsigned int idx;
   unsigned char downto;
   
   accept(TOKENIZER_FOR);
   for_variable = tokenizer_variable_num();
   accept(TOKENIZER_VARIABLE);
+  idx=ubasic_get_dim_index(for_variable);
   accept(TOKENIZER_EQ);
-  ubasic_set_variable(for_variable, expr(),0);
+  ubasic_set_variable(for_variable, expr(), idx);
   if (tokenizer_token() == TOKENIZER_TO) {
   	downto = 0;
   } else if (tokenizer_token() == TOKENIZER_DOWNTO) {
@@ -760,6 +801,67 @@ static void dim_statement(void) {
 	}
 	accept(TOKENIZER_RIGHTPAREN);
 	accept(TOKENIZER_CR);
+}
+#endif
+
+#if UBASIC_DATA
+/*---------------------------------------------------------------------------*/
+static PTR_TYPE search_data_statement(PTR_TYPE p) {
+	// noch nicht fertig...!!!
+	// 
+	// * (naechstes) DATA-Statement ab uebergebenen Pointer suchen
+	// * diesen Wert zurueckgeben
+	//
+	return p;
+}
+
+/*---------------------------------------------------------------------------*/
+static int next_data_value(PTR_TYPE p) {
+	// noch nicht fertig...!!!
+	//
+	// * naechsten DATA-Wert ermitteln, u.U. muss search_data_statement()
+	//   aufgerufen werden, wenn Zeilenende eines DATA-Statements
+	//   erreicht ist
+	//
+	return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+static void data_statement(void) {
+	// sollte eigentlich so funktionieren...!
+	accept(TOKENIZER_DATA);
+	if (!first_data) {
+		first_data=get_current_prog_pointer();
+		current_data=first_data;
+	}
+	jump_to_next_linenum();
+}
+
+/*---------------------------------------------------------------------------*/
+static void read_statement(void) {
+	int val;
+	if (!first_data) {
+		first_data=search_data_statement(get_current_prog_pointer());
+	};
+	current_data=first_data;
+	accept(TOKENIZER_READ);
+	// erstmal nur Dummy...!!!
+	jump_to_next_linenum();
+	// hier sollte noch was sinnvolles kommen
+	// ...
+	val= next_data_value(current_data);
+	// ... und Variable ermitteln fuellen
+	// ... u.U. mehrere Variblen mit Komma voneinander getrennt
+}
+
+/*---------------------------------------------------------------------------*/
+static void restore_statement(void) {
+	// so sollte es gehen, wenn search_data_statement() fertig)...!
+	if (!first_data) {
+		first_data=search_data_statement(get_current_prog_pointer());
+	};
+	current_data=first_data;
+	accept(TOKENIZER_RESTORE);
 }
 #endif
 
@@ -859,6 +961,18 @@ statement(void)
     dim_statement();
     break;
   #endif
+  
+  #if UBASIC_DATA
+  case TOKENIZER_DATA:
+    data_statement();
+    break;
+  case TOKENIZER_READ:
+    read_statement();
+    break;
+  case TOKENIZER_RESTORE:
+    restore_statement();
+    break;
+  #endif
 
   case TOKENIZER_LET:
     accept(TOKENIZER_LET);
@@ -932,27 +1046,13 @@ ubasic_set_variable(int varnum, int value, unsigned int idx)
 }
 /*---------------------------------------------------------------------------*/
 int
-ubasic_get_variable(int varnum)
+ubasic_get_variable(int varnum, unsigned int idx)
 {
-#if UBASIC_ARRAY
-	unsigned int idx = 0;
-#endif
 	if(varnum >= 0 && varnum < MAX_VARNUM) {
 #if UBASIC_ARRAY
 		// handelt es sich um ein Array?
 		if (variables[varnum].adr) {
-			// * Index in den Klammern ermitteln
-			accept(TOKENIZER_LEFTPAREN);
-			idx=expr();
-			// * damit die Dimension abpruefen
-			if (idx<variables[varnum].dim) {
-				accept(TOKENIZER_RIGHTPAREN);
-				// * Wert ermitteln
-				return variables[varnum].adr[idx];
-			} else {
-			    tokenizer_error_print(current_linenum, ARRAY_OUT_OF_RANGE);
-    			ubasic_break();
-			}
+			return variables[varnum].adr[idx];
 		} else 
 #endif
 			return variables[varnum].val;

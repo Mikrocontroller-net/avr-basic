@@ -84,6 +84,10 @@
 // Interpreters zur Zerstueckelung des Speichers fuehren koennte
 #define UBASIC_ARRAY	1
 
+// Verwendung von DATA/READ/RESTORE
+// --> noch nicht fertig! <--
+#define UBASIC_DATA		1
+
 // exit(1) in Fehlersituationen macht sich bei AVRs etwas schlecht...
 #ifndef BREAK_NOT_EXIT
 	#define BREAK_NOT_EXIT	1
