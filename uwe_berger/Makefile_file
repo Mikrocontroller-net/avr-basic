@@ -1,0 +1,28 @@
+# 
+# Makefile fuer ubasic unter Linux
+#
+#
+
+CC      = gcc
+CFLAGS  = -Wall -g
+CFLAGS  += -DUSE_AVR=0
+CFLAGS  += -DACCESS_VIA_FILE=1
+CFLAGS  += -DBREAK_NOT_EXIT=0
+CFLAGS  += -DMAX_STRINGLEN=80
+
+OBJ  =  ubasic_file.o avr_basic/ubasic.o avr_basic/tokenizer.o 
+OBJ += avr_basic/ubasic_call.o avr_basic/ubasic_cvars.o avr_basic/tokenizer_access.o
+OBJ += avr_basic/ubasic_ext_proc.o
+BIN = ubasic
+
+ubasic: $(OBJ)
+	$(CC) $(CFLAGS) -o $(BIN) *.o $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
+	
+	
+.PHONY: clean
+clean:
+	rm -rf $(BIN) *.o *.elf
+
