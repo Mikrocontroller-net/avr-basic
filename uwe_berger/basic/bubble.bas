@@ -1,8 +1,8 @@
-10   b=200
+10   b=100
 20   rem ***Zufallszahen erzeugen***
 30   dim a(b)
 40   srand
-50   for i=1 to b-1
+50   for i=0 to b-1
 60   a(i)=rand(100)
 80   next i
 90   gosub 1000

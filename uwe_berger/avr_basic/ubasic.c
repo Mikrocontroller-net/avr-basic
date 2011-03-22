@@ -591,17 +591,20 @@ gosub_statement(void)
 		strncpy(p_name, tokenizer_last_string_ptr(), MAX_PROG_NAME_LEN);
 		jump_to_next_linenum();
 	} else
-#endif	
+#else	
 	if (tokenizer_token() == TOKENIZER_STRING) {
 	    tokenizer_error_print(current_linenum, GOSUB_NO_EXT_SUBPROC);
     	ubasic_break();		
+	} else
+#endif
+	{
+		linenum = expr();
+		// es muss bis zum Zeilenende gelesen werden, um die Rueck-
+		// sprungzeile fuer return zu ermitteln
+		if (tokenizer_token() != TOKENIZER_CR) jump_to_next_linenum();
+		else  tokenizer_next();
+		tokenizer_next();
 	}
-	linenum = expr();
-	// es muss bis zum Zeilenende gelesen werden, um die Rueck-
-	// sprungzeile fuer return zu ermitteln
-	if (tokenizer_token() != TOKENIZER_CR) jump_to_next_linenum();
-	else  tokenizer_next();
-	tokenizer_next();
 	if(gosub_stack_ptr < MAX_GOSUB_STACK_DEPTH) {
 		gosub_stack[gosub_stack_ptr].p_ptr = get_prog_text_pointer();
 		#if UBASIC_EXT_PROC

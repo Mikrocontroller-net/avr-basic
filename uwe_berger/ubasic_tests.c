@@ -331,6 +331,71 @@ const char prog29[] PROGMEM=
 80 end\n\
 ";
 
+const char prog30[] PROGMEM=
+"\
+10 dir(\"b\",5)=1\n\
+20 out(\"b\",5)=1\n\
+25 print \"An...\"\n\
+30 wait 1000\n\
+40 out(\"b\",5)=0\n\
+45 print \"Aus...\"\n\
+50 wait 1000\n\
+60 goto 20\n\
+70 end\n\
+";
+
+const char prog31[] PROGMEM=
+"\
+10  b=10\n\
+20  c=200\n\
+30  dim a(b)\n\
+40  for i=0 to b-1\n\
+50  a(i)=0\n\
+60  next i\n\
+70  srand\n\
+80  for i=1 to c\n\
+90  z=rand(b-1)\n\
+100  a(z)=a(z)+1\n\
+110 next i\n\
+120 for i=0 to b-1\n\
+130 print a(i),\n\
+140 next i\n\
+150 print \n\
+160 end\n\
+";
+
+const char prog32[] PROGMEM=
+"\
+10   b=20\n\
+20   rem ***Zufallszahen erzeugen***\n\
+30   dim a(b)\n\
+40   srand\n\
+50   for i=0 to b-1\n\
+60   a(i)=rand(100)\n\
+80   next i\n\
+90   gosub 1000\n\
+100  print\n\
+110  print \"**********\"\n\
+120  rem ***Bubblesort***\n\
+130  for i=0 to b-1\n\
+140  for j=0 to b-1\n\
+150  if a(j) > a(i) gosub 1100\n\
+160  next j\n\
+170  next i\n\
+180  gosub 1000\n\
+190  print\n\
+200  end\n\
+1000 rem ***Array ausgeben***\n\
+1010 for i=0 to b-1\n\
+1020 print a(i),\n\
+1030 next i\n\
+1040 return\n\
+1100 rem ***Swapping***\n\
+1110 t=a(i)\n\
+1120 a(i)=a(j)\n\
+1130 a(j)=t\n\
+1140 return\n\
+";
 
 static const struct progs_t progs[] PROGMEM = {
 	{"prog0",  prog0 },
@@ -360,6 +425,8 @@ static const struct progs_t progs[] PROGMEM = {
 	{"prog24", prog24},
 	{"prog25", prog25},
 	{"prog26", prog26},
+	{"zufall", prog31},
+	{"bubble", prog32},
 	{"extgo",  prog27},
 	{"up1",    prog28},
 	{"array",  prog29}
