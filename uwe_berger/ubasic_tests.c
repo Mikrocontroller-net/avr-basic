@@ -425,6 +425,7 @@ static const struct progs_t progs[] PROGMEM = {
 	{"prog24", prog24},
 	{"prog25", prog25},
 	{"prog26", prog26},
+	{"ablink", prog30},
 	{"zufall", prog31},
 	{"bubble", prog32},
 	{"extgo",  prog27},
