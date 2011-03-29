@@ -397,6 +397,24 @@ const char prog32[] PROGMEM=
 1140 return\n\
 ";
 
+const char prog33[] PROGMEM=
+"\
+print \"Hallo Uwe\"\n\
+for i=1 to 10\n\
+print i\n\
+next i\n\
+gosub 20\n\
+goto 10\n\
+print \"hier nicht!\"\n\
+10: rem ...\n\
+print \"hier ist korrekt...\"\n\
+end\n\
+20: rem UP...\n\
+print \"Unterprogramm\"\n\
+return\n\
+";
+
+
 static const struct progs_t progs[] PROGMEM = {
 	{"prog0",  prog0 },
 	{"prog1",  prog1 },
@@ -428,6 +446,7 @@ static const struct progs_t progs[] PROGMEM = {
 	{"ablink", prog30},
 	{"zufall", prog31},
 	{"bubble", prog32},
+	{"no_ln",  prog33},
 	{"extgo",  prog27},
 	{"up1",    prog28},
 	{"array",  prog29}
