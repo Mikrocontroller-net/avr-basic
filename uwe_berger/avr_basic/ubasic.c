@@ -890,6 +890,11 @@ line_statement(void)
 		if (tokenizer_token() == TOKENIZER_COLON) tokenizer_next();
 #endif
 	}
+	// Zeilennummer/Label allein auf einer Zeile? 
+	if (tokenizer_token() == TOKENIZER_CR) {
+		skip_all_whitespaces();
+		tokenizer_next();
+	}
 	statement();
 	return;
 }

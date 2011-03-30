@@ -11,10 +11,10 @@ goto 10
 
 print "hier nicht!"
 
-10: rem ...
+10:
 print "hier ist korrekt..."
 end
 
-20: rem UP...
+20:
 print "Unterprogramm"
 return
