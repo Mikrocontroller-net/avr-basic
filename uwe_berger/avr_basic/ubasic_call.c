@@ -168,12 +168,12 @@ int call_statement(void) {
 	// abschliessende rechte Klammer
     accept(TOKENIZER_RIGHTPAREN);
     // bei Funktionspointertypen ohne Rueckgabewert ein Token weitergelesen...
-    if ((f_typ_temp == VOID_FUNC_VOID)		||
-    	(f_typ_temp == VOID_FUNC_INT)		||
-    	(f_typ_temp == VOID_FUNC_2INT)		||
-    	(f_typ_temp == VOID_FUNC_2INT_CHAR)	||
-    	(f_typ_temp == VOID_FUNC_4INT) 
-    	) tokenizer_next();
+    //if ((f_typ_temp == VOID_FUNC_VOID)		||
+    //	(f_typ_temp == VOID_FUNC_INT)		||
+    //	(f_typ_temp == VOID_FUNC_2INT)		||
+    //	(f_typ_temp == VOID_FUNC_2INT_CHAR)	||
+    //	(f_typ_temp == VOID_FUNC_4INT) 
+    //	) tokenizer_next();
 	return r;
 }
 #endif

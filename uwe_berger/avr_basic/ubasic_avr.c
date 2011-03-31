@@ -163,7 +163,7 @@ void dir_statement(void) {
 		    tokenizer_error_print(current_linenum, UNKNOWN_IO_PORT);
 			ubasic_break();
 	}
-	tokenizer_next();
+	//tokenizer_next();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -209,7 +209,7 @@ void out_statement(void) {
 			tokenizer_error_print(current_linenum, UNKNOWN_IO_PORT);
 			ubasic_break();
 	}
-	tokenizer_next();
+	//tokenizer_next();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -223,7 +223,7 @@ void epoke_statement(void)
     accept(TOKENIZER_EQ);
 	val = expr();
 	eeprom_write_byte((unsigned char *)adr, val);
-	tokenizer_next();
+	//tokenizer_next();
 }
 
 /*---------------------------------------------------------------------------*/
@@ -233,7 +233,7 @@ void wait_statement(void) {
 	accept(TOKENIZER_WAIT);
 	delay=expr();
 	for (int i=0; i<delay; i++) _delay_ms(1);
-	tokenizer_next();
+	//tokenizer_next();
 }
 
 #endif

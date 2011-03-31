@@ -99,7 +99,7 @@ void vpoke_statement(void) {
 #else	
 	*cvars[idx].pvar = expr();
 #endif
-	tokenizer_next();
+	//tokenizer_next();
 }
 
 int vpeek_expression(void) {

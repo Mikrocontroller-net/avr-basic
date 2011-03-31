@@ -515,7 +515,7 @@ print_statement(void)
 			tokenizer_token() != TOKENIZER_ENDOFINPUT);
 	// wenn "," oder ";" am Zeilenende, dann kein Zeilenvorschub
 	if (nl) PRINTF("\n\r");
-	tokenizer_next();
+	//tokenizer_next();
 }
 #endif
 /*---------------------------------------------------------------------------*/
@@ -532,12 +532,13 @@ if_statement(void)
 	if(r) {
 		statement();
 		// bei Kurzform darf kein ELSE kommen!
-		if (no_then && (tokenizer_token() != TOKENIZER_NUMBER)) {
+		if (no_then && (tokenizer_token() == TOKENIZER_ELSE)) {
 		    tokenizer_error_print(current_linenum, SHORT_IF_WITH_ELSE);
 			ubasic_break();			
 		}
 		// hmm..., hier ist man schon ein Token zu weit...
-		if(tokenizer_token() == TOKENIZER_NUMBER) return;
+		if	((tokenizer_token() == TOKENIZER_NUMBER)|| 
+			(tokenizer_token() != TOKENIZER_ELSE)) return;
 		jump_to_next_linenum();
 	} else {
 		do {
@@ -575,7 +576,7 @@ let_statement(void)
 #endif	
 	accept(TOKENIZER_EQ);
 	ubasic_set_variable(var, expr(), idx);
-	tokenizer_next();
+	//tokenizer_next();
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -732,7 +733,7 @@ static void srand_statement(void) {
 	accept(TOKENIZER_SRND);
 	while (p >= &__heap_start + 1)
 		seed ^= * (--p);
-	tokenizer_next();
+	//tokenizer_next();
 }
 #else
 static void srand_statement(void) {
@@ -740,7 +741,7 @@ static void srand_statement(void) {
 	accept(TOKENIZER_SRND);
 	time(&t);
 	srand((unsigned int)t);
-	tokenizer_next();
+	//tokenizer_next();
 }
 #endif
 #endif
@@ -767,6 +768,22 @@ static void dim_statement(void) {
 	accept(TOKENIZER_CR);
 }
 #endif
+
+#if UBASIC_DATA
+/*---------------------------------------------------------------------------*/
+static void data_statement(void) {
+	
+}
+/*---------------------------------------------------------------------------*/
+static void read_statement(void) {
+	
+}
+/*---------------------------------------------------------------------------*/
+static void restore_statement(void) {
+
+}
+#endif
+
 
 /*---------------------------------------------------------------------------*/
 static void
@@ -862,6 +879,20 @@ statement(void)
   #if UBASIC_ARRAY
   case TOKENIZER_DIM:
     dim_statement();
+    break;
+  #endif
+
+  #if UBASIC_DATA
+  case TOKENIZER_DATA:
+    data_statement();
+    break;
+    
+  case TOKENIZER_READ:
+    read_statement();
+    break;
+    
+  case TOKENIZER_RESTORE:
+    restore_statement();
     break;
   #endif
 

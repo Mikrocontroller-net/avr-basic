@@ -6,6 +6,6 @@
 60  if 1=2 print "das darf nicht ausgegeben werden!"
 70  print "*** if ohne then aber mit else ***"
 80  if 1<2 print "Bedingung ist wahr" else print "Fehler!"
-90  if 1=2 print "das darf nicht ausgegeben werden!" else "FEHLER!"
+90  if 1=2 print "das darf nicht ausgegeben werden!" else print "FEHLER!"
 100 print "Das ist das Ende des Programmes!"
 110 end

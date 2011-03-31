@@ -165,6 +165,11 @@ static const struct keyword_token keywords[] = {
 	#if UBASIC_ARRAY
 	{"dim", TOKENIZER_DIM},
 	#endif
+	#if UBASIC_DATA
+	{"data", TOKENIZER_DATA},
+	{"read", TOKENIZER_READ},
+	{"restore", TOKENIZER_RESTORE},
+	#endif
 	{"or", TOKENIZER_OR},
 	{"and", TOKENIZER_AND},
 	{"mod", TOKENIZER_MOD},
