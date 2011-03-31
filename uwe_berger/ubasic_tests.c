@@ -414,6 +414,60 @@ print \"Unterprogramm\"\n\
 return\n\
 ";
 
+const char prog34[] PROGMEM=
+"\
+for a=0 to 32\n\
+ 	gosub 100\n\
+ 	print \" \",\n\
+ 	gosub 200\n\
+ 	print\n\
+next a\n\
+end\n\
+rem ***** Ende *****\n\
+rem ***** Unterprogramme *****\n\
+100:\n\
+dim b(32)\n\
+i=-1\n\
+t=a\n\
+print \"0b\";\n\
+10: i=i+1\n\
+	b(i) = t mod 2\n\
+	t=t/2\n\
+	if t>0 goto 10\n\
+for t=i downto 0\n\
+	print b(t);\n\
+next t\n\
+return\n\
+200:\n\
+dim b(32)\n\
+i=-1\n\
+t=a\n\
+print \"0x\";\n\
+20: i=i+1\n\
+	b(i) = t mod 16\n\
+	t=t/16\n\
+	if t>0 goto 20\n\
+for t=i downto 0\n\
+	if b(t) = 0  print \"0\";\n\
+	if b(t) = 1  print \"1\";\n\
+	if b(t) = 2  print \"2\";\n\
+	if b(t) = 3  print \"3\";\n\
+	if b(t) = 4  print \"4\";\n\
+	if b(t) = 5  print \"5\";\n\
+	if b(t) = 6  print \"6\";\n\
+	if b(t) = 7  print \"7\";\n\
+	if b(t) = 8  print \"8\";\n\
+	if b(t) = 9  print \"9\";\n\
+	if b(t) = 10 print \"A\";\n\
+	if b(t) = 11 print \"B\";\n\
+	if b(t) = 12 print \"C\";\n\
+	if b(t) = 13 print \"D\";\n\
+	if b(t) = 14 print \"E\";\n\
+	if b(t) = 15 print \"F\";\n\
+next t\n\
+return\n\
+";
+
 
 static const struct progs_t progs[] PROGMEM = {
 	{"prog0",  prog0 },
@@ -447,6 +501,7 @@ static const struct progs_t progs[] PROGMEM = {
 	{"zufall", prog31},
 	{"bubble", prog32},
 	{"no_ln",  prog33},
+	{"hexbin", prog34},
 	{"extgo",  prog27},
 	{"up1",    prog28},
 	{"array",  prog29}

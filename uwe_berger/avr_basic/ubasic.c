@@ -757,6 +757,8 @@ static void dim_statement(void) {
 	// Dimension des Array
 	dim=expr();
 	variables[var].dim=dim;
+	// wenn Speicher schon mal reserviert war, zuerst freigeben
+	if (!(variables[var].adr == NULL)) free(variables[var].adr);
 	// Speicher reservieren
 	variables[var].adr=malloc(dim * sizeof(int));
 	// genug Speicher vorhanden?
