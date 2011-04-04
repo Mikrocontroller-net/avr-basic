@@ -468,6 +468,15 @@ next t\n\
 return\n\
 ";
 
+const char prog35[] PROGMEM=
+"\
+input \"zwei Eingabe: \"; a, b\n\
+print\n\
+print\n\
+print a, b\n\
+end\n\
+";
+
 
 static const struct progs_t progs[] PROGMEM = {
 	{"prog0",  prog0 },
@@ -502,6 +511,7 @@ static const struct progs_t progs[] PROGMEM = {
 	{"bubble", prog32},
 	{"no_ln",  prog33},
 	{"hexbin", prog34},
+	{"input",  prog35},
 	{"extgo",  prog27},
 	{"up1",    prog28},
 	{"array",  prog29}

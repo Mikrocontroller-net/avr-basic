@@ -61,6 +61,8 @@
 	#include "../uart/usart.h"
 	#include <avr/io.h>
 	#include "ubasic_avr.h"
+#else
+	#include <ctype.h>
 #endif
 
 #if UBASIC_EXT_PROC
@@ -771,6 +773,38 @@ static void dim_statement(void) {
 }
 #endif
 
+#if UBASIC_INPUT
+/*---------------------------------------------------------------------------*/
+static void input_statement(void) {
+	int var;
+	char buf[MAX_INPUT_LEN];
+	char* buf_ptr = buf;
+	accept(TOKENIZER_INPUT);
+	if (tokenizer_token() == TOKENIZER_STRING) {
+		PRINTF("%s", tokenizer_last_string_ptr());
+		accept(TOKENIZER_STRING);
+		accept(TOKENIZER_SEMICOLON);
+	} else {
+		PRINTF("? ");
+	}
+	do {
+		if (tokenizer_token()==TOKENIZER_VARIABLE) {
+			var = tokenizer_variable_num();
+			GETLINE(buf_ptr, MAX_INPUT_LEN);
+			ubasic_set_variable(var, atoi(buf), 0);			
+			tokenizer_next();
+		} else if (tokenizer_token()==TOKENIZER_COMMA) {
+			PRINTF("\n\r? ");
+			tokenizer_next();
+		} else {
+			break;
+		}
+	} while(tokenizer_token() != TOKENIZER_CR &&
+			tokenizer_token() != TOKENIZER_ENDOFINPUT);
+	PRINTF("\n\r");
+}
+#endif
+
 #if UBASIC_DATA
 /*---------------------------------------------------------------------------*/
 static void data_statement(void) {
@@ -884,6 +918,12 @@ statement(void)
     break;
   #endif
 
+  #if UBASIC_INPUT
+  case TOKENIZER_INPUT:
+    input_statement();
+    break;
+  #endif
+
   #if UBASIC_DATA
   case TOKENIZER_DATA:
     data_statement();
@@ -906,6 +946,7 @@ statement(void)
     break;
     
   default:
+  	PRINTF("-->%i\n\r", token);
     tokenizer_error_print(current_linenum, UNKNOWN_STATEMENT);
     ubasic_break();
   }

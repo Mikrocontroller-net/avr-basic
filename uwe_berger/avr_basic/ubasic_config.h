@@ -25,9 +25,11 @@
 
 // regulaere Standardausgabe
 #if USE_AVR
-	#define PRINTF(...)  usart_write(__VA_ARGS__)
+	#define PRINTF(...)			usart_write(__VA_ARGS__)
+	#define GETLINE(buf, len)	usart_read_line(buf, len)
 #else
-	#define PRINTF(...)  printf(__VA_ARGS__);fflush(stdout);
+	#define PRINTF(...)			printf(__VA_ARGS__);fflush(stdout);
+	#define GETLINE(buf, len)	fgets(buf, len, stdin)
 #endif
 
 // grml..., sollte man besser loesen!
@@ -38,6 +40,11 @@
 // max. Stringlaenge (Basic)
 #ifndef MAX_STRINGLEN
 	#define MAX_STRINGLEN 30
+#endif
+
+// max. Laenge der Eingabe beim INPUT-Befehl
+#ifndef MAX_INPUT_LEN
+	#define MAX_INPUT_LEN 11
 #endif
 
 // max. Schachtelungstiefe fuer GOSUB (Basic)
@@ -74,6 +81,7 @@
 #define UBASIC_PRINT	1
 #define UBASIC_RND		1
 #define UBASIC_HEX_BIN	1
+#define UBASIC_INPUT	1
 
 // externe Unterprogramme (via gosub)
 #define UBASIC_EXT_PROC	1

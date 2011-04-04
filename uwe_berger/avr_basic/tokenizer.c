@@ -141,6 +141,9 @@ static const struct keyword_token keywords[] = {
 	{"srand", TOKENIZER_SRND},
 	{"rand", TOKENIZER_RND},
 	#endif
+	#if UBASIC_INPUT
+	{"input", TOKENIZER_INPUT},
+	#endif
 	#if AVR_EPOKE
 	{"epoke", TOKENIZER_EPOKE},
 	#endif

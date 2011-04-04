@@ -53,6 +53,7 @@
 #define OUT_OF_MEMORY           16
 #define NOT_ENOUGH_DATA			17
 #define UNKNOWN_LINENUMBER		18
+#define INPUT_IS_NOT_NUMBER     19
 
 int current_linenum;
 

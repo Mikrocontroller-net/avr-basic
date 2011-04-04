@@ -1,5 +1,4 @@
-
-10   b=100
+10   b=30
 20   rem ***Zufallszahen erzeugen***
 30   dim a(b)
 40   srand
@@ -9,7 +8,8 @@
 80   next i
 90   gosub 1000
 100  print 
-110  print "**********"
+110  gosub 1200
+115  print
 120  rem ***Bubblesort***
 130  for i=0 to b-1
 140  for j=0 to b-1
@@ -18,6 +18,7 @@
 170  next i
 180  gosub 1000
 190  print
+195  gosub 1200
 200  end
 
 1000 rem ***Array ausgeben***
@@ -31,4 +32,14 @@
 1120 a(i)=a(j)
 1130 a(j)=t
 1140 return
+
+1200 rem Balken ausgeben
+for i=0 to b-1
+	for j=0 to a(i)
+		print "*";
+	next j
+	print
+next i
+return
+
 
