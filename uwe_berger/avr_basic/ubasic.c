@@ -109,6 +109,15 @@ static struct linenum_cache_t linenum_cache[MAX_LINENUM_CACHE_DEPTH];
 static int linenum_cache_ptr;
 #endif
 
+
+struct varinfo_t {
+	int varnum;
+#if UBASIC_ARRAY
+	int idx;
+#endif		
+};
+
+
 struct variables_t {
 	int val;
 #if UBASIC_ARRAY
@@ -177,10 +186,8 @@ accept(int token)
 static int
 varfactor(void)
 {
-  int r;
   accept(TOKENIZER_VARIABLE);
-  r = ubasic_get_variable(tokenizer_variable_num());
-  return r;
+  return ubasic_get_variable(ubasic_get_varinfo());
 }
 /*---------------------------------------------------------------------------*/
 static int
@@ -564,20 +571,11 @@ if_statement(void)
 static void
 let_statement(void)
 {
-	unsigned int idx=0;
-	int var;
-	var = tokenizer_variable_num();
+	struct varinfo_t var;
 	accept(TOKENIZER_VARIABLE);
-#if UBASIC_ARRAY	
-	// wenn Variable ein Array, dann noch Index ermitteln
-	if (variables[var].adr) {
-		accept(TOKENIZER_LEFTPAREN);
-		idx=expr();
-		accept(TOKENIZER_RIGHTPAREN);	
-	}
-#endif	
+	var = ubasic_get_varinfo();
 	accept(TOKENIZER_EQ);
-	ubasic_set_variable(var, expr(), idx);
+	ubasic_set_variable(var, expr());
 	//tokenizer_next();
 }
 /*---------------------------------------------------------------------------*/
@@ -647,13 +645,13 @@ return_statement(void)
 static void
 next_statement(void)
 {
-  int var;
+  struct varinfo_t var;
   
   accept(TOKENIZER_NEXT);
-  var = tokenizer_variable_num();
   accept(TOKENIZER_VARIABLE);
-  if(for_stack_ptr > 0 && var == for_stack[for_stack_ptr - 1].for_variable) {
-    ubasic_set_variable(var, ubasic_get_variable(var) + for_stack[for_stack_ptr - 1].step, 0);
+  var = ubasic_get_varinfo();
+  if(for_stack_ptr > 0 && var.varnum == for_stack[for_stack_ptr - 1].for_variable) {
+    ubasic_set_variable(var, ubasic_get_variable(var) + for_stack[for_stack_ptr - 1].step);
     if(((ubasic_get_variable(var) <= for_stack[for_stack_ptr - 1].to) && !for_stack[for_stack_ptr - 1].downto)||
        ((ubasic_get_variable(var) >= for_stack[for_stack_ptr - 1].to) && for_stack[for_stack_ptr - 1].downto)
       ) {
@@ -673,12 +671,14 @@ for_statement(void)
 {
   int for_variable, to, step; 
   unsigned char downto;
+  struct varinfo_t var;
   
   accept(TOKENIZER_FOR);
-  for_variable = tokenizer_variable_num();
   accept(TOKENIZER_VARIABLE);
+  var = ubasic_get_varinfo();
+  for_variable = var.varnum;
   accept(TOKENIZER_EQ);
-  ubasic_set_variable(for_variable, expr(),0);
+  ubasic_set_variable(var, expr());
   if (tokenizer_token() == TOKENIZER_TO) {
   	downto = 0;
   } else if (tokenizer_token() == TOKENIZER_DOWNTO) {
@@ -776,7 +776,6 @@ static void dim_statement(void) {
 #if UBASIC_INPUT
 /*---------------------------------------------------------------------------*/
 static void input_statement(void) {
-	int var;
 	char buf[MAX_INPUT_LEN];
 	char* buf_ptr = buf;
 	accept(TOKENIZER_INPUT);
@@ -789,10 +788,10 @@ static void input_statement(void) {
 	}
 	do {
 		if (tokenizer_token()==TOKENIZER_VARIABLE) {
-			var = tokenizer_variable_num();
+			accept(TOKENIZER_VARIABLE);
 			GETLINE(buf_ptr, MAX_INPUT_LEN);
-			ubasic_set_variable(var, atoi(buf), 0);			
-			tokenizer_next();
+			ubasic_set_variable(ubasic_get_varinfo(), atoi(buf));			
+			//tokenizer_next();
 		} else if (tokenizer_token()==TOKENIZER_COMMA) {
 			PRINTF("\n\r? ");
 			tokenizer_next();
@@ -1005,56 +1004,62 @@ ubasic_finished(void)
 {
 	return ended || tokenizer_finished();
 }
+
 /*---------------------------------------------------------------------------*/
-void
-ubasic_set_variable(int varnum, int value, unsigned int idx)
-{
-	if(varnum >= 0 && varnum < MAX_VARNUM) {
+void ubasic_set_variable(struct varinfo_t var, int value) {
 #if UBASIC_ARRAY
-		// handelt es sich um ein Array?
-		if (variables[varnum].adr) {
-			// * Dimension abpruefen
-			if (idx<variables[varnum].dim) {
-				// * Wert setzen
-				variables[varnum].adr[idx]=value;
-			} else {
-			    tokenizer_error_print(current_linenum, ARRAY_OUT_OF_RANGE);
-    			ubasic_break();
-			}
-		} else 
-#endif		
-			variables[varnum].val = value;
-	}
-}
-/*---------------------------------------------------------------------------*/
-int
-ubasic_get_variable(int varnum)
-{
-#if UBASIC_ARRAY
-	unsigned int idx = 0;
+	if (variables[var.varnum].adr)  
+		variables[var.varnum].adr[var.idx]=value;
+	else
 #endif
-	if(varnum >= 0 && varnum < MAX_VARNUM) {
+		variables[var.varnum].val = value;
+}
+
+/*---------------------------------------------------------------------------*/
+struct varinfo_t ubasic_get_varinfo(void) {
+#if UBASIC_ARRAY
+	struct varinfo_t var={0, 0};
+#else
+	struct varinfo_t var={0};
+#endif
+	var.varnum = tokenizer_variable_num();
+	if(var.varnum >= 0 && var.varnum < MAX_VARNUM) {
 #if UBASIC_ARRAY
 		// handelt es sich um ein Array?
-		if (variables[varnum].adr) {
-			// * Index in den Klammern ermitteln
+		if (variables[var.varnum].adr) {
+			// Index in den Klammern ermitteln
 			accept(TOKENIZER_LEFTPAREN);
-			idx=expr();
-			// * damit die Dimension abpruefen
-			if (idx<variables[varnum].dim) {
+			var.idx=expr();
+			// damit die Dimension abpruefen
+			if (var.idx<variables[var.varnum].dim) {
 				accept(TOKENIZER_RIGHTPAREN);
-				// * Wert ermitteln
-				return variables[varnum].adr[idx];
 			} else {
+				// Array-Index ausserhalb der Definition (DIM)
 			    tokenizer_error_print(current_linenum, ARRAY_OUT_OF_RANGE);
     			ubasic_break();
 			}
-		} else 
+		}
 #endif
-			return variables[varnum].val;
+	} else {
+			// Variablenname unbekannt (MAX_VARNUM)
+		    tokenizer_error_print(current_linenum, UNKNOWN_VARIABLE);
+   			ubasic_break();
 	}
-	return 0;
+	return var;
 }
+
+
+/*---------------------------------------------------------------------------*/
+int ubasic_get_variable(struct varinfo_t var) {
+# if UBASIC_ARRAY
+	if (variables[var.varnum].adr)  
+		return variables[var.varnum].adr[var.idx];
+	else
+#endif
+		return variables[var.varnum].val;
+}
+
+
 /*---------------------------------------------------------------------------*/
 // Park-Miller "minimal standard" 31Bit pseudo-random generator
 // http://www.firstpr.com.au/dsp/rand31/
