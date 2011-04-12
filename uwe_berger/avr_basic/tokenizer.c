@@ -446,3 +446,17 @@ int tokenizer_finished(void) {
 int tokenizer_variable_num(void) {
 	return last_var_num;
 }
+
+/*---------------------------------------------------------------------------*/
+struct tokenizer_pos_t tokenizer_get_position(void) {
+	struct tokenizer_pos_t pos;
+	pos.prog_ptr = PROG_PTR;
+	pos.token = current_token;
+	return pos;
+}
+
+/*---------------------------------------------------------------------------*/
+void tokenizer_set_position(struct tokenizer_pos_t pos) {
+	SET_PROG_PTR_ABSOLUT(pos.prog_ptr);
+	current_token = pos.token;
+}

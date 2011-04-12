@@ -130,6 +130,14 @@ static struct variables_t variables[MAX_VARNUM];
 
 static unsigned char ended;
 
+#if UBASIC_DATA
+struct data_ptr_t {
+	struct tokenizer_pos_t first;
+	struct tokenizer_pos_t current;
+} data_ptr = {{0,0},{0,0}};
+#endif
+
+
 int expr(void);
 static void line_statement(void);
 static void statement(void);
@@ -791,7 +799,6 @@ static void input_statement(void) {
 			accept(TOKENIZER_VARIABLE);
 			GETLINE(buf_ptr, MAX_INPUT_LEN);
 			ubasic_set_variable(ubasic_get_varinfo(), atoi(buf));			
-			//tokenizer_next();
 		} else if (tokenizer_token()==TOKENIZER_COMMA) {
 			PRINTF("\n\r? ");
 			tokenizer_next();
@@ -806,16 +813,122 @@ static void input_statement(void) {
 
 #if UBASIC_DATA
 /*---------------------------------------------------------------------------*/
+static void ubasic_search_data(void) {
+	struct tokenizer_pos_t save_pos;
+	// Tokenizer-Position sichern
+	save_pos=tokenizer_get_position();
+	// DATA-Anweisung suchen
+	do {
+		// REM-Zeilen ueberlesen
+		if (tokenizer_token() == TOKENIZER_REM) {
+			jump_to_next_linenum();
+		} else {
+			tokenizer_next();
+		}
+	} while(tokenizer_token() != TOKENIZER_DATA  && 
+	        tokenizer_token() != TOKENIZER_ENDOFINPUT &&
+	        !tokenizer_finished());
+	// kein DATA (mehr) gefunden...?
+	if (tokenizer_token() == TOKENIZER_ENDOFINPUT || tokenizer_finished()) {
+		// ... nein, Fehlerbehandlung
+	    tokenizer_error_print(current_linenum, NOT_ENOUGH_DATA);
+		ubasic_break();			
+	} else {
+		// ... ja, Positionen merken
+		if (!data_ptr.first.prog_ptr) data_ptr.first = tokenizer_get_position(); 
+		data_ptr.current = tokenizer_get_position(); 				
+	}
+	// Tokenizer-Position wieder zuruecksetzen
+	tokenizer_set_position(save_pos);
+}
+
+
+/*---------------------------------------------------------------------------*/
+static int ubasic_next_data(void) {
+	struct tokenizer_pos_t save_pos;
+	int val;
+	// aktuelle Tokenizer-Position merken
+	save_pos=tokenizer_get_position();
+	// wenn noch nie DATA, dann suchen	
+	if (!data_ptr.current.prog_ptr) {
+		ubasic_search_data();
+	}
+	// Tokenizer auf aktuelle DATA-Position setzen
+	tokenizer_set_position(data_ptr.current);
+	tokenizer_next();
+	// ... und naechsten DATA-Wert ermitteln
+	do { 
+		if (tokenizer_token() == TOKENIZER_COMMA) {
+			tokenizer_next();
+		} else if (tokenizer_token() == TOKENIZER_CR) {
+			// aktuelles DATA zuende, naechstes Auftreten suchen
+			ubasic_search_data();
+			tokenizer_set_position(data_ptr.current);
+			tokenizer_next();
+		} else if (tokenizer_token() == TOKENIZER_NUMBER) {
+			//...
+		} else
+			// unzulaessiges Token in DATA-Anweisung
+			break;
+	} while (tokenizer_token() != TOKENIZER_NUMBER &&
+	         tokenizer_token() != TOKENIZER_ENDOFINPUT &&
+	         !tokenizer_finished());
+	// "ausreichend" DATA-Werte vorhanden...? 
+	if (tokenizer_token() == TOKENIZER_ENDOFINPUT || tokenizer_finished()) {
+		// ... nein, Fehlerbehandlung
+	    tokenizer_error_print(current_linenum, NOT_ENOUGH_DATA);
+		ubasic_break();			
+	} else {
+		// ... ja, Position merken, Wert zuweisen
+		data_ptr.current = tokenizer_get_position();
+		val = tokenizer_num();
+	}
+	// Tokenizer-Position wieder zuruecksetzen
+	tokenizer_set_position(save_pos);
+	return val;
+}
+
+/*---------------------------------------------------------------------------*/
 static void data_statement(void) {
-	
+	// erstes Auftreten von DATA und noch keine Pointer gesetzt
+	if (!data_ptr.first.prog_ptr) {
+		data_ptr.first = tokenizer_get_position();
+		data_ptr.current = data_ptr.first;
+	}
+	// ansonsten Rest ueberlesen (wie REM)
+	jump_to_next_linenum();
 }
 /*---------------------------------------------------------------------------*/
 static void read_statement(void) {
-	
+	int val;
+	struct varinfo_t var;
+	accept(TOKENIZER_READ);
+	do {
+		if (tokenizer_token()==TOKENIZER_VARIABLE) {
+			tokenizer_next();
+			var = ubasic_get_varinfo();
+			// naechsten DATA-Wert ermitteln
+			val = ubasic_next_data();
+			ubasic_set_variable(var, val);			
+			tokenizer_next();
+		} else if (tokenizer_token()==TOKENIZER_COMMA) {
+			tokenizer_next();
+		} else {
+			break;
+		}
+	} while(tokenizer_token() != TOKENIZER_CR &&
+			tokenizer_token() != TOKENIZER_ENDOFINPUT);
 }
 /*---------------------------------------------------------------------------*/
 static void restore_statement(void) {
-
+	if (data_ptr.first.prog_ptr) {
+		// DATA wurde schon mal erkannt, also PTR auf erstes DATA setzen
+		data_ptr.current = data_ptr.first;		
+	} else {
+		// noch kein DATA, also suchen
+		ubasic_search_data();
+	}
+	accept(TOKENIZER_RESTORE);
 }
 #endif
 
