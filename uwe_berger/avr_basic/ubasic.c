@@ -849,7 +849,9 @@ static void srand_statement(void) {
 #if UBASIC_ARRAY
 static void dim_statement(void) {
 	int var, dim, i;
+#if UBASIC_STRING
 	int is_strvar=0;
+#endif
 	accept(TOKENIZER_DIM);
 	var = tokenizer_variable_num();
 #if UBASIC_STRING
