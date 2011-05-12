@@ -26,9 +26,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * ------------------------------------------------------
- * Source modified by Uwe Berger (bergeruw@gmx.net); 2010
- * ------------------------------------------------------
+ * ------------------------------------------------------------
+ * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
+ * ------------------------------------------------------------
  */
 #ifndef __UBASIC_H__
 #define __UBASIC_H__

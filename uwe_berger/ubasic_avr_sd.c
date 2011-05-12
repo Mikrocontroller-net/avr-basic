@@ -203,7 +203,9 @@ int main(void){
 						usart_write("\r\nProgramm unterbrochen...!\r\n");
 						break;
 					}
+					//usart_write("--> in while run...\n\r");
 				} while(!ubasic_finished());
+				//usart_write("--> hinter finish...\n\r");
 				fat_close_file(fd);
 			} else {
                 usart_write("error opening %s\n\r ", command);

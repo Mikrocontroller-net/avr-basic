@@ -28,16 +28,17 @@
 	void set_ptr(PTR_TYPE offset) {
 		ptr = offset;
 		fat_seek_file(fd, &offset, FAT_SEEK_SET);
-		if (!fat_read_file(fd, &c, 1)) eof=1; else eof=0;
+		if (fat_read_file(fd, &c, 1)<=0) eof=1; else eof=0;
 	}
 	//------------------------------------------
 	void incr_ptr(void) {
 		ptr++;
-		if (!fat_read_file(fd, &c, 1)) eof=1; else eof=0;
+		if (fat_read_file(fd, &c, 1)<=0) eof=1; else eof=0;
 	}
 	//------------------------------------------
 	char is_eof(void) {
-		if (eof) return 1; else return 0;
+		//if (eof) return 1; else return 0;
+		return eof;
 	}
 #endif
 

@@ -26,9 +26,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * ------------------------------------------------------
- * Source modified by Uwe Berger (bergeruw@gmx.net); 2010
- * ------------------------------------------------------
+ * ------------------------------------------------------------
+ * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
+ * ------------------------------------------------------------
  */
 
 #define DEBUG 0
@@ -191,17 +191,19 @@ PTR_TYPE get_prog_text_pointer(void) {
 }
 /*---------------------------------------------------------------------------*/
 void skip_whitespaces(void){
-	while(	GET_CONTENT_PROG_PTR == ' '  || 
-			GET_CONTENT_PROG_PTR == '\r' ||
-			GET_CONTENT_PROG_PTR == '\t'
+	while((GET_CONTENT_PROG_PTR == ' '  || 
+		   GET_CONTENT_PROG_PTR == '\r' ||
+		   GET_CONTENT_PROG_PTR == '\t'    ) &&
+		  !END_OF_PROG_TEXT
 		 ) INCR_PROG_PTR;
 }
 /*---------------------------------------------------------------------------*/
 void skip_all_whitespaces(void){
-	while(	GET_CONTENT_PROG_PTR == ' '  || 
-			GET_CONTENT_PROG_PTR == '\n' ||
-			GET_CONTENT_PROG_PTR == '\r' ||
-			GET_CONTENT_PROG_PTR == '\t'
+	while((GET_CONTENT_PROG_PTR == ' '  || 
+		   GET_CONTENT_PROG_PTR == '\n' ||
+		   GET_CONTENT_PROG_PTR == '\r' ||
+		   GET_CONTENT_PROG_PTR == '\t'    ) &&
+		  !END_OF_PROG_TEXT
 		 ) INCR_PROG_PTR;
 }
 /*---------------------------------------------------------------------------*/

@@ -1,7 +1,7 @@
 /*----------------------------------------------------------------------
  * 
- *           Uwe Berger (bergeruw@gmx.net); 2010
- *           ===================================
+ *           Uwe Berger (bergeruw@gmx.net); 2010, 2011
+ *           =========================================
  * 
  * Einige Defines, die hauptsaechlich den uBasic-Sprachumfang und die 
  * Zielplattform steuern.
