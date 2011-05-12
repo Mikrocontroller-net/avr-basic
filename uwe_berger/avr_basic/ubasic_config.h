@@ -98,6 +98,9 @@
 // DATA/READ/RESTORE
 #define UBASIC_DATA		1
 
+// String-Support
+#define UBASIC_STRING	1
+
 // exit(1) in Fehlersituationen macht sich bei AVRs etwas schlecht...
 #ifndef BREAK_NOT_EXIT
 	#define BREAK_NOT_EXIT	1

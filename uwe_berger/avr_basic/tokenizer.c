@@ -26,9 +26,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * ------------------------------------------------------------
+ * ------------------------------------------------------
  * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
- * ------------------------------------------------------------
+ * ------------------------------------------------------
  */
 
 #define DEBUG 0
@@ -173,6 +173,16 @@ static const struct keyword_token keywords[] = {
 	{"read", TOKENIZER_READ},
 	{"restore", TOKENIZER_RESTORE},
 	#endif
+	#if UBASIC_STRING
+	{"left$", TOKENIZER_LEFT},
+	{"right$", TOKENIZER_RIGHT},
+	{"mid$", TOKENIZER_MID},
+	{"chr$", TOKENIZER_CHR},
+	{"str$", TOKENIZER_STR},	
+	{"len", TOKENIZER_LEN},	
+	{"val", TOKENIZER_VAL},	
+	{"asc", TOKENIZER_ASC},		
+	#endif
 	{"or", TOKENIZER_OR},
 	{"and", TOKENIZER_AND},
 	{"mod", TOKENIZER_MOD},
@@ -258,6 +268,11 @@ static int singlechar(void) {
 	} else if(GET_CONTENT_PROG_PTR == '=') {
 		return TOKENIZER_EQ;
   	}
+  	#if UBASIC_STRING
+  	else if(GET_CONTENT_PROG_PTR == '$') {
+		return TOKENIZER_DOLLAR;
+	}
+  	#endif
 	return 0;
 }
 
@@ -385,6 +400,12 @@ static int get_next_token(void) {
 	if(toupper(GET_CONTENT_PROG_PTR) >= 'A' && toupper(GET_CONTENT_PROG_PTR) <= 'Z') {
 		last_var_num=toupper(GET_CONTENT_PROG_PTR)-'A';
 		INCR_PROG_PTR;
+#if UBASIC_STRING
+		if (GET_CONTENT_PROG_PTR == '$') {
+			INCR_PROG_PTR;
+			return TOKENIZER_STRINGVAR;
+		} else
+#endif
 		return TOKENIZER_VARIABLE;
 	}
 	return TOKENIZER_ERROR;

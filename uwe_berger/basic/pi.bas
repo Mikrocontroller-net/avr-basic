@@ -1,7 +1,7 @@
 10  REM Program to calculate up to 15000 digits of PI 
 20  REM Richard Russell, 16th March 2006 
 21  REM geht nur auf Plattformen mit 32-Bit-Integer!!!
-30  n=400
+30  n=1000
 40  n = (n/4)*14
 50  DIM f(n+1) 
 60  FOR i=1 TO n 

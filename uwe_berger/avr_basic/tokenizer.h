@@ -26,9 +26,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * ------------------------------------------------------------
+ * ------------------------------------------------------
  * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
- * ------------------------------------------------------------
+ * ------------------------------------------------------
  */
 #ifndef __TOKENIZER_H__
 #define __TOKENIZER_H__
@@ -133,6 +133,18 @@ enum {
   TOKENIZER_DATA,			// 46
   TOKENIZER_READ,
   TOKENIZER_RESTORE,
+  #endif
+  #if UBASIC_STRING
+  TOKENIZER_STRINGVAR,
+  TOKENIZER_DOLLAR,
+  TOKENIZER_LEFT,
+  TOKENIZER_RIGHT,
+  TOKENIZER_MID,
+  TOKENIZER_CHR,
+  TOKENIZER_STR,
+  TOKENIZER_LEN,
+  TOKENIZER_VAL,
+  TOKENIZER_ASC,
   #endif
   TOKENIZER_GE,
   TOKENIZER_LE,

@@ -26,13 +26,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * ------------------------------------------------------------
+ * ------------------------------------------------------
  * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
- * ------------------------------------------------------------
+ * ------------------------------------------------------
  */
 #ifndef __UBASIC_H__
 #define __UBASIC_H__
 
+#include "ubasic_config.h"
 
 
 #define SYNTAX_ERROR			1
@@ -55,6 +56,9 @@
 #define UNKNOWN_LINENUMBER		18
 #define INPUT_IS_NOT_NUMBER     19
 #define UNKNOWN_VARIABLE        20
+#define STRING_TO_LARGE         21
+#define DATA_READ_TYPE_DIFF		22
+#define STRINGVAR_NOT_INIT		23
 
 int current_linenum;
 
@@ -65,6 +69,11 @@ int ubasic_finished(void);
 struct varinfo_t ubasic_get_varinfo(void);
 int ubasic_get_variable(struct varinfo_t var);
 void ubasic_set_variable(struct varinfo_t varum, int value);
+
+#if UBASIC_STRING
+char* strexpr(void);
+void ubasic_set_strvariable(struct varinfo_t var, char *str);
+#endif
 
 void accept(int token);
 int expr(void);
