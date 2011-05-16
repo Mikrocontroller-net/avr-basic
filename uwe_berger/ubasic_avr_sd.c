@@ -45,6 +45,10 @@
 #include "avr_basic/ubasic_ext_proc.h"
 #include "avr_basic/ubasic.h"
 
+#if USE_AVR && RTC_DS1307
+#include "ds1307/i2cmaster.h"
+#endif
+
 //Taktfrequenz
 #ifndef F_CPU
 #define F_CPU 16000000UL
@@ -79,6 +83,9 @@ int main(void){
 	extern char current_proc[MAX_PROG_NAME_LEN];
 #endif
 
+#if USE_AVR && RTC_DS1307
+	i2c_init();
+#endif
 
     usart_init(BAUDRATE);
 

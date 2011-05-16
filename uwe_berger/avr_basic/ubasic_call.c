@@ -20,6 +20,10 @@
 	#include "../lc7981/lc7981.h"
 #endif
 
+#if USE_AVR && RTC_DS1307
+	#include "../ds1307/ds1307.h"
+#endif
+
 #if USE_AVR
 	#include "../uart/usart.h"
 #else
@@ -46,6 +50,11 @@ callfunct_t callfunct[] = {
     {"pclear",	.funct_ptr.VoidFunc2Int=lcd_pclear,		VOID_FUNC_2INT},
     {"puts",	.funct_ptr.VoidFunc2IntChar=lcd_puts,	VOID_FUNC_2INT_CHAR},
 #endif
+#if USE_AVR && RTC_DS1307
+	// Auslesen RTC DS1307
+    {"get_rtc",	.funct_ptr.IntFuncInt=get_DS1307,		INT_FUNC_INT},
+#endif
+
     {"",		{NULL},									255}
 };
 
