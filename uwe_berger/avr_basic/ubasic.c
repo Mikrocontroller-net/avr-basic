@@ -446,12 +446,14 @@ relation(void)
   
   r1 = expr();
   op = tokenizer_token();
+/*
   while(op == TOKENIZER_LT ||
 		op == TOKENIZER_GT ||
 		op == TOKENIZER_GE ||
 		op == TOKENIZER_LE ||
 		op == TOKENIZER_NE ||
 		op == TOKENIZER_EQ) {
+*/
     tokenizer_next();
     r2 = expr();
     switch(op) {
@@ -475,7 +477,9 @@ relation(void)
       break;
     }
     op = tokenizer_token();
+/*
   }
+*/
   return r1;
 }
 /*---------------------------------------------------------------------------*/
@@ -608,17 +612,35 @@ print_statement(void)
 static void
 if_statement(void)
 {
-	int r;
+	int r, r1, lop;
 	unsigned char no_then=0;
   
 	accept(TOKENIZER_IF);
+	
 #if UBASIC_STRING	
-	if (ubasic_is_strexpr()) 
-		r = strrelation();
-	else 
+		if (ubasic_is_strexpr()) 
+			r = strrelation();
+		else 
 #endif
-		r = relation();
-
+			r = relation();
+	
+	lop = tokenizer_token();
+	while (lop == TOKENIZER_LOGAND ||
+		   lop == TOKENIZER_LOGOR)    {
+		tokenizer_next();
+#if UBASIC_STRING	
+		if (ubasic_is_strexpr()) 
+			r1 = strrelation();
+		else 
+#endif
+			r1 = relation();
+		if (lop == TOKENIZER_LOGAND)
+			r = r & r1;
+		else if (lop == TOKENIZER_LOGOR)
+			r = r | r1;
+		lop = tokenizer_token();
+	}
+			  
 		// Kurzform (IF ohne THEN/ELSE)?
 	if (tokenizer_token() == TOKENIZER_THEN) accept(TOKENIZER_THEN); else no_then=1;
 	if(r) {
@@ -1372,13 +1394,14 @@ static int strrelation(void)
   
 	strcpy(s1, strexpr());
 	op = tokenizer_token();
+/*
 	while(op == TOKENIZER_LT ||
 		  op == TOKENIZER_GT ||
 		  op == TOKENIZER_GE ||
 		  op == TOKENIZER_LE ||
 		  op == TOKENIZER_NE ||
 		  op == TOKENIZER_EQ) {
-
+*/
 		tokenizer_next();
 		strcpy(s2, strexpr());
 		r = strcmp(s1, s2);
@@ -1404,7 +1427,9 @@ static int strrelation(void)
 		else r = 0;
 		
 		op = tokenizer_token();
+/*
 	}
+*/
 	return r;
 }
 
@@ -1418,6 +1443,8 @@ unsigned char ubasic_is_strexpr() {
 	r = 0;
 	while (r == 0 &&
 		tokenizer_token() != TOKENIZER_CR 			&&
+		tokenizer_token() != TOKENIZER_LOGAND		&&
+		tokenizer_token() != TOKENIZER_LOGOR		&&
 		tokenizer_token() != TOKENIZER_VARIABLE		&&
 		tokenizer_token() != TOKENIZER_NUMBER		&&
 		tokenizer_token() != TOKENIZER_LEN			&&

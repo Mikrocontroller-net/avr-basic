@@ -183,8 +183,8 @@ static const struct keyword_token keywords[] = {
 	{"val", TOKENIZER_VAL},	
 	{"asc", TOKENIZER_ASC},		
 	#endif
-	{"or", TOKENIZER_OR},
-	{"and", TOKENIZER_AND},
+	{"or", TOKENIZER_LOGOR},
+	{"and", TOKENIZER_LOGAND},
 	{"mod", TOKENIZER_MOD},
 	{"<=", TOKENIZER_LE},
 	{">=", TOKENIZER_GE},
