@@ -13,6 +13,7 @@ CFLAGS  += -DMAX_STRINGLEN=80
 OBJ  =  ubasic_file.o avr_basic/ubasic.o avr_basic/tokenizer.o 
 OBJ += avr_basic/ubasic_call.o avr_basic/ubasic_cvars.o avr_basic/tokenizer_access.o
 OBJ += avr_basic/ubasic_ext_proc.o
+OBJ += avr_basic/ubasic_platform.o
 BIN = ubasic
 
 ubasic: $(OBJ)

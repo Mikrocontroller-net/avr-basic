@@ -149,10 +149,11 @@ struct data_ptr_t {
 } data_ptr = {{0,0},{0,0}};
 #endif
 
-
+// Prototypen
 int expr(void);
 static void line_statement(void);
 static void statement(void);
+void ubasic_free_all_mem(void);
 #if UBASIC_RND && USE_AVR
 static long unsigned int rand31_next(void);
 #endif
@@ -172,24 +173,8 @@ ubasic_init(PTR_TYPE program)
 #if USE_LINENUM_CACHE
 	linenum_cache_ptr = 0;
 #endif
-	for (i=0; i<MAX_VARNUM; i++) {
-		variables[i].val=0;
-#if UBASIC_STRING
-		if (strvariables[i].val_adr) free(strvariables[i].val_adr);
-		strvariables[i].val_adr=NULL;
-#endif
-#if UBASIC_ARRAY
-		// Arrays: vorsichtshalber nochmal pruefen und ggf. reagieren
-		if (!(variables[i].adr == NULL)) free(variables[i].adr);
-		variables[i].adr=NULL;
-		variables[i].dim=0;
-	#if UBASIC_STRING
-		if (!(strvariables[i].adr == NULL)) free(strvariables[i].adr);
-		strvariables[i].adr=NULL;
-		strvariables[i].dim=0;
-	#endif
-#endif
-	}
+	for (i=0; i<MAX_VARNUM; i++) variables[i].val=0;
+	ubasic_free_all_mem();
 	tokenizer_init(program);
 	ended = 0;
 }
@@ -1252,12 +1237,32 @@ line_statement(void)
 	return;
 }
 /*---------------------------------------------------------------------------*/
+void ubasic_free_all_mem(void) {
+	unsigned char i;
+	// dynamischer RAM fuer Arrays und Zeichenketten
+#if UBASIC_ARRAY || UBASIC_STRING 
+	for (i=0; i<MAX_VARNUM; i++) {
+	#if UBASIC_ARRAY
+		if (variables[i].adr) free(variables[i].adr);
+		variables[i].adr=NULL;
+		variables[i].dim=0;
+	#endif
+	#if UBASIC_STRING
+		if (strvariables[i].val_adr) free(strvariables[i].val_adr);
+		strvariables[i].val_adr=NULL;
+		#if UBASIC_ARRAY
+		if (strvariables[i].adr) free(strvariables[i].adr);
+		strvariables[i].adr=NULL;
+		strvariables[i].dim=0;
+		#endif
+	#endif
+	}
+#endif		
+}
+/*---------------------------------------------------------------------------*/
 void
 ubasic_run(void)
 {
-#if UBASIC_ARRAY
-	unsigned char i;
-#endif
 	if(tokenizer_finished()) {
 		return;
 	}
@@ -1267,31 +1272,12 @@ ubasic_run(void)
 		skip_all_whitespaces();
 		tokenizer_next();
 	}
-#if UBASIC_ARRAY || UBASIC_STRING 
-	// Speicher ggf. wieder zurueckgeben (Arrays), wenn Programmende
-	if (ended || tokenizer_finished()) {
-		for (i=0; i<MAX_VARNUM; i++) {
-#if UBASIC_ARRAY
-			if (variables[i].adr) free(variables[i].adr);
-			variables[i].adr=NULL;
-			variables[i].dim=0;
-#endif
-#if UBASIC_STRING
-			if (strvariables[i].val_adr) free(strvariables[i].val_adr);
-			strvariables[i].val_adr=NULL;
-	#if UBASIC_ARRAY
-			if (strvariables[i].adr) free(strvariables[i].adr);
-			strvariables[i].adr=NULL;
-			strvariables[i].dim=0;
-	#endif
-#endif
-		}
-	}
-#endif	
+	// Programm zuende, allozierten Speicher frei machen
+	if (ended || tokenizer_finished()) ubasic_free_all_mem();
 }
+
 /*---------------------------------------------------------------------------*/
-int
-ubasic_finished(void)
+int ubasic_finished(void)
 {
 	return ended || tokenizer_finished();
 }
