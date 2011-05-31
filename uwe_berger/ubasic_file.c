@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Basic-Programm von Datei einlesen
-	f = fopen(argv[1], "r");
+	f = fopen(argv[1], "rb");
 	if (!f) {
 		printf("Fehler beim Oeffnen der Datei: %s\n", argv[1]);
 		exit(1);
