@@ -182,6 +182,10 @@ static const struct keyword_token keywords[] = {
 	{"len", TOKENIZER_LEN},	
 	{"val", TOKENIZER_VAL},	
 	{"asc", TOKENIZER_ASC},		
+	{"m_strlen", TOKENIZER_MAXSTRLEN},			
+	{"upper$", TOKENIZER_UPPER},			
+	{"lower$", TOKENIZER_LOWER},			
+	{"instr$", TOKENIZER_INSTR},			
 	#endif
 	{"or", TOKENIZER_LOGOR},
 	{"and", TOKENIZER_LOGAND},
@@ -189,6 +193,7 @@ static const struct keyword_token keywords[] = {
 	{"<=", TOKENIZER_LE},
 	{">=", TOKENIZER_GE},
 	{"<>", TOKENIZER_NE},
+	{"tab", TOKENIZER_TAB},
 	{"", TOKENIZER_ERROR}
 };
 // Prototypen
@@ -355,6 +360,7 @@ static int get_next_token(void) {
 	} else if(GET_CONTENT_PROG_PTR == '"') {
 						INCR_PROG_PTR;
 						i=0;
+/*
 						do {
 							last_string[i] = GET_CONTENT_PROG_PTR;
 							INCR_PROG_PTR;
@@ -362,6 +368,16 @@ static int get_next_token(void) {
 							// max. zulaessige Stringlaenge?
 							if (i >= MAX_STRINGLEN) return TOKENIZER_ERROR;
 						} while(GET_CONTENT_PROG_PTR != '"');
+*/
+
+						while (GET_CONTENT_PROG_PTR != '"') {
+							last_string[i] = GET_CONTENT_PROG_PTR;
+							INCR_PROG_PTR;
+							i++;
+							// max. zulaessige Stringlaenge?
+							if (i >= MAX_STRINGLEN) return TOKENIZER_ERROR;							
+						}
+
 						// String null-terminieren
 						last_string[i]=0;
 						INCR_PROG_PTR;
@@ -430,6 +446,10 @@ void tokenizer_next(void) {
 	skip_whitespaces();
 	current_token = get_next_token();
 	return;
+}
+/*---------------------------------------------------------------------------*/
+void tokenizer_set_num(int val) {
+	last_value=val;
 }
 /*---------------------------------------------------------------------------*/
 int tokenizer_num(void) {

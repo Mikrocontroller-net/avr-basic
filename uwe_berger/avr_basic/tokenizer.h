@@ -147,11 +147,16 @@ enum {
   TOKENIZER_LEN,
   TOKENIZER_VAL,
   TOKENIZER_ASC,
+  TOKENIZER_MAXSTRLEN,
+  TOKENIZER_UPPER,
+  TOKENIZER_LOWER,
+  TOKENIZER_INSTR,
   #endif
   TOKENIZER_GE,
   TOKENIZER_LE,
   TOKENIZER_NE,
   TOKENIZER_COLON,
+  TOKENIZER_TAB,
   TOKENIZER_CR					// 55
 };
 
@@ -167,7 +172,7 @@ int tokenizer_token(void);
 int tokenizer_num(void);
 int tokenizer_variable_num(void);
 const char * tokenizer_last_string_ptr(void);
-
+void tokenizer_set_num(int val);
 int tokenizer_finished(void);
 void tokenizer_error_print(int linenum, int error_nr);
 PTR_TYPE get_prog_text_pointer(void);

@@ -2,7 +2,7 @@ dim a(10)
 dim b$(1)
 read a(0), a(1), a(3), b$(0)
 gosub 100
-data 42, 23, 4711, "MoinMoin"
+data 42, 23, -4711, "MoinMoin"
 end
 
 100:

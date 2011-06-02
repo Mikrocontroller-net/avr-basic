@@ -104,7 +104,7 @@ char current_proc[MAX_PROG_NAME_LEN];
 	// Umschalten des Programm-Kontextes
 	void switch_proc(char *p_name) {
 		fclose(f);
-		f = fopen(p_name, "r");
+		f = fopen(p_name, "rb");
 		if (!f) {
 			tokenizer_error_print(current_linenum, UNKNOWN_SUBPROC);
 			ubasic_break();

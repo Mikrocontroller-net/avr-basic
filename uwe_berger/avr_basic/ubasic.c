@@ -46,7 +46,6 @@
 	#endif
 #endif
 
-
 #if UBASIC_CALL
 	#include "ubasic_call.h"
 #endif
@@ -54,7 +53,6 @@
 #if UBASIC_CVARS
 	#include "ubasic_cvars.h"
 #endif
-
 
 #if USE_AVR
 	#include "../uart/usart.h"
@@ -218,6 +216,8 @@ factor(void)
   #endif
   #if UBASIC_STRING
   char *s;
+  char s1[MAX_STRINGLEN+1];
+  char s2[MAX_STRINGLEN+1];
   #endif
   switch(tokenizer_token()) {
 
@@ -288,6 +288,23 @@ factor(void)
     r=(int)s[0];
     accept(TOKENIZER_RIGHTPAREN);
     break;
+    
+  case TOKENIZER_MAXSTRLEN:
+	accept(TOKENIZER_MAXSTRLEN);
+	r=MAX_STRINGLEN;
+	break;
+	
+  case TOKENIZER_INSTR:
+	accept(TOKENIZER_INSTR);
+    accept(TOKENIZER_LEFTPAREN);
+    strcpy(s1, strexpr());
+    accept(TOKENIZER_COMMA);
+    strcpy(s2, strexpr());
+    s=strstr(s1, s2);
+    if (s) r=s-s1; else r=-1;    
+    accept(TOKENIZER_RIGHTPAREN);
+	break;
+   
   #endif
 
   #if UBASIC_NOT
@@ -523,6 +540,7 @@ static void
 print_statement(void)
 {
 	unsigned char nl;
+	int i, j;
 	accept(TOKENIZER_PRINT);
 	do {
 		nl=1;
@@ -540,6 +558,13 @@ print_statement(void)
 		} else if(tokenizer_token() == TOKENIZER_SEMICOLON) {
 			nl=0;
 			tokenizer_next();
+		} else if(tokenizer_token() == TOKENIZER_TAB) {
+			accept(TOKENIZER_TAB);
+			accept(TOKENIZER_LEFTPAREN);
+			j=expr();
+			//PRINTF("-->%i\n\r", j);
+			for (i=0; i<j; i++) PRINTF(" ");
+			accept(TOKENIZER_RIGHTPAREN);
 		} else if(tokenizer_token() == TOKENIZER_VARIABLE  ||
 			tokenizer_token() == TOKENIZER_LEFTPAREN ||
 			tokenizer_token() == TOKENIZER_MINUS     ||
@@ -572,6 +597,8 @@ print_statement(void)
 			tokenizer_token() == TOKENIZER_LEN       ||
 			tokenizer_token() == TOKENIZER_VAL       ||
 			tokenizer_token() == TOKENIZER_ASC       ||
+			tokenizer_token() == TOKENIZER_MAXSTRLEN ||
+			tokenizer_token() == TOKENIZER_INSTR     ||
 			#endif
 			tokenizer_token() == TOKENIZER_NUMBER ) {
 				PRINTF("%i", expr());
@@ -581,6 +608,8 @@ print_statement(void)
 				tokenizer_token() == TOKENIZER_RIGHT			||
 				tokenizer_token() == TOKENIZER_MID				||
 				tokenizer_token() == TOKENIZER_CHR				||
+				tokenizer_token() == TOKENIZER_LOWER			||
+				tokenizer_token() == TOKENIZER_UPPER			||
 				tokenizer_token() == TOKENIZER_STR) {
 				PRINTF("%s", strexpr());
 #endif
@@ -826,7 +855,8 @@ static void
 rem_statement(void)
 {
 	accept(TOKENIZER_REM);
-	jump_to_next_linenum();
+	// im if gekapselt wg. (z.B.) leere REM-Anweisung
+	if (tokenizer_token() != TOKENIZER_CR) jump_to_next_linenum();
 }
 #endif
 
@@ -989,10 +1019,21 @@ static int ubasic_next_data(void) {
 		} else if (tokenizer_token() == TOKENIZER_CR) {
 			// aktuelles DATA zuende, naechstes Auftreten suchen
 			ubasic_search_data();
+			// ... und Position merken
 			tokenizer_set_position(data_ptr.current);
 			tokenizer_next();
 		} else if (tokenizer_token() == TOKENIZER_NUMBER) {
 			//...
+		} else if (tokenizer_token() == TOKENIZER_MINUS) {
+			// Interger-Werte duerfen auch negativ sein
+			accept(TOKENIZER_MINUS);
+			//... dann muss aber auch eine Zahl nach dem Minus kommen!
+			if (tokenizer_token()!=TOKENIZER_NUMBER) {
+				tokenizer_error_print(current_linenum, SYNTAX_ERROR);
+				ubasic_break();							
+			}
+			// last_num im tokenizer manipulieren...
+			tokenizer_set_num(tokenizer_num()*(-1));
 #if UBASIC_STRING
 		} else if (tokenizer_token() == TOKENIZER_STRING) {
 			//...
@@ -1014,7 +1055,6 @@ static int ubasic_next_data(void) {
 	} else {
 		// ... ja, Position merken, Wert zuweisen
 		data_ptr.current = tokenizer_get_position();
-		//val = tokenizer_num();
 		val=tokenizer_token();
 	}
 	// Tokenizer-Position wieder zuruecksetzen
@@ -1042,7 +1082,7 @@ static void read_statement(void) {
 			var = ubasic_get_varinfo();
 			// naechsten DATA-Wert ermitteln
 			if (ubasic_next_data()!=TOKENIZER_NUMBER) {
-				// DATA-Wert passt nicht zu READ-Variablentyp
+				// DATA-Wert passt nicht zu READ-Variablentyp (Integer)
 				tokenizer_error_print(current_linenum, DATA_READ_TYPE_DIFF);
 				ubasic_break();
 			}
@@ -1053,7 +1093,7 @@ static void read_statement(void) {
 			tokenizer_next();
 			var = ubasic_get_strvarinfo();
 			if (ubasic_next_data()!=TOKENIZER_STRING) {
-				// DATA-Wert passt nicht zu READ-Variablentyp
+				// DATA-Wert passt nicht zu READ-Variablentyp (String)
 				tokenizer_error_print(current_linenum, DATA_READ_TYPE_DIFF);
 				ubasic_break();
 			}
@@ -1587,6 +1627,30 @@ char* strfactor(void) {
 			r=(char*)&str_buf[0];			
 			accept(TOKENIZER_RIGHTPAREN);
 			break;
+			
+		case TOKENIZER_UPPER:
+			accept(TOKENIZER_UPPER);
+			accept(TOKENIZER_LEFTPAREN);
+			s=strexpr();
+			while (*s != '\0') {
+				if (islower (*s)) *s = toupper (*s);
+				++s;
+			}
+			r=(char*)&str_buf[0];				
+			accept(TOKENIZER_RIGHTPAREN);		
+			break;
+
+		case TOKENIZER_LOWER:
+			accept(TOKENIZER_LOWER);
+			accept(TOKENIZER_LEFTPAREN);
+			s=strexpr();
+			while (*s != '\0') {
+				if (isupper (*s)) *s = tolower (*s);
+				++s;
+			}
+			r=(char*)&str_buf[0];				
+			accept(TOKENIZER_RIGHTPAREN);		
+			break;
 
 		default:
 			break;
@@ -1609,7 +1673,7 @@ char* strexpr(void) {
 		tokenizer_next();
 		s2 = strfactor();
 		str_len = str_len + strlen(s2);
-		if (str_len >= MAX_STRINGLEN) {
+		if (str_len >= MAX_STRINGLEN+1) {
 			// Stringlaenge wird zu gross
 		    tokenizer_error_print(current_linenum, STRING_TO_LARGE);
    			ubasic_break();
@@ -1632,7 +1696,7 @@ void ubasic_set_strvariable(struct varinfo_t var, char *str) {
 	{
 		// Speicher fuer Variable reservieren
 		if (strvariables[var.varnum].val_adr == NULL)
-			strvariables[var.varnum].val_adr=malloc(MAX_STRINGLEN);
+			strvariables[var.varnum].val_adr=malloc(MAX_STRINGLEN+1);
 		// genug Speicher vorhanden?
 		if (strvariables[var.varnum].val_adr == NULL	) {
 			tokenizer_error_print(current_linenum, OUT_OF_MEMORY);

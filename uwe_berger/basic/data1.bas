@@ -8,7 +8,7 @@
 6 print a
 
 7 print "vor DATA"
-8 data 23, 24
+8 data 23, -24
 9 rem print "dazwischen"
 10 data 0xff
 11 print "hinter DATA"
