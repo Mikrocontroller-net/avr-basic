@@ -34,7 +34,7 @@
 #define __UBASIC_H__
 
 #include "ubasic_config.h"
-
+#include "tokenizer.h"
 
 #define SYNTAX_ERROR			1
 #define UNKNOWN_ADC_CHANNEL		2
@@ -59,6 +59,71 @@
 #define STRING_TO_LARGE         21
 #define DATA_READ_TYPE_DIFF		22
 #define STRINGVAR_NOT_INIT		23
+
+
+// Typ-Definition gosub-Stack
+struct gosub_stack_t {
+#if UBASIC_EXT_PROC
+	char p_name[MAX_PROG_NAME_LEN];
+#endif
+	PTR_TYPE p_ptr;
+};
+
+// Typ-Definition for-next-Stack
+struct for_state_t {
+  PTR_TYPE next_line_ptr;
+  int for_variable;
+  int to;
+  int step;
+  char downto;
+};
+
+// Type-Definition Zeilennummern-Cache
+#if USE_LINENUM_CACHE
+struct linenum_cache_t {
+#if UBASIC_EXT_PROC
+	char p_name[MAX_PROG_NAME_LEN];
+#endif
+	int linenum;
+	PTR_TYPE next_line_ptr;
+};
+#endif
+
+// Typ-Definition Variablen-Information
+struct varinfo_t {
+	int varnum;
+#if UBASIC_ARRAY
+	int idx;
+#endif		
+};
+
+// Typ-Definition BASIC-Integer-Variable
+struct variables_t {
+	int val;
+#if UBASIC_ARRAY
+	int* adr;
+	int dim;
+#endif		
+};
+
+// Typ-Definition BASIC-String-Variable
+#if UBASIC_STRING
+struct strvariables_t {
+	char* val_adr;
+#if UBASIC_ARRAY
+	char *adr;
+	int dim;
+#endif
+};
+#endif
+
+// Typ-Definition DATA-Pointer (data/read/restore)
+#if UBASIC_DATA
+struct data_ptr_t {
+	struct tokenizer_pos_t first;
+	struct tokenizer_pos_t current;
+};
+#endif
 
 int current_linenum;
 

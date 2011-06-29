@@ -32,10 +32,20 @@
 	#define GETLINE(buf, len)	fgets(buf, len, stdin)
 #endif
 
+// Tokenizer-Typ
+//#define TOKENIZER_STANDARD			1
+#define TOKENIZER_FASTPARSER			1
+
+
 // grml..., sollte man besser loesen!
 #if !USE_AVR
 	#define uint8_t unsigned char
 #endif
+
+#define MAX_NUMLEN 5
+#define MAX_HEXLEN 4
+#define MAX_BINLEN 16
+
 
 // max. Stringlaenge (Basic)
 #ifndef MAX_STRINGLEN
@@ -64,6 +74,10 @@
 
 // max. Laenge von Funktions- und Variablennamen in call(), vpeek() und vpoke()
 #define MAX_NAME_LEN	8
+
+// maximale Laenge Programmname (gosub)
+#define MAX_PROG_NAME_LEN	13
+
 
 // bei Verwendung des PROGMEM muess die Laenge des Schluesselwordfeldes
 // fest vorgegeben werden (Tabelle keywords in tokenenizer.c)

@@ -15,8 +15,6 @@
 #ifndef __UBASIC_EXT_PROC_H__
 #define __UBASIC_EXT_PROC_H__
 
-// maximale Laenge Programmname
-#define MAX_PROG_NAME_LEN	13
 
 // Prototypen
 void switch_proc(char *);

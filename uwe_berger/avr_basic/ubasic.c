@@ -31,7 +31,6 @@
  * ------------------------------------------------------
  */
 
-
 #include "tokenizer_access.h"
 #include "ubasic.h"
 #include "tokenizer.h"
@@ -72,68 +71,20 @@
 
 PTR_TYPE program_ptr;
 
-struct gosub_stack_t {
-#if UBASIC_EXT_PROC
-	char p_name[MAX_PROG_NAME_LEN];
-#endif
-	PTR_TYPE p_ptr;
-};
-
 static struct gosub_stack_t gosub_stack[MAX_GOSUB_STACK_DEPTH];
 static int gosub_stack_ptr;
 
-struct for_state {
-  PTR_TYPE next_line_ptr;
-  int for_variable;
-  int to;
-  int step;
-  char downto;
-};
-
-static struct for_state for_stack[MAX_FOR_STACK_DEPTH];
+static struct for_state_t for_stack[MAX_FOR_STACK_DEPTH];
 static int for_stack_ptr;
 
 #if USE_LINENUM_CACHE
-struct linenum_cache_t {
-#if UBASIC_EXT_PROC
-	char p_name[MAX_PROG_NAME_LEN];
-#endif
-	int linenum;
-	PTR_TYPE next_line_ptr;
-};
-
 static struct linenum_cache_t linenum_cache[MAX_LINENUM_CACHE_DEPTH];
 static int linenum_cache_ptr;
 #endif
 
-
-struct varinfo_t {
-	int varnum;
-#if UBASIC_ARRAY
-	int idx;
-#endif		
-};
-
-struct variables_t {
-	int val;
-#if UBASIC_ARRAY
-	int* adr;
-	int dim;
-#endif		
-};
-
 static struct variables_t variables[MAX_VARNUM];
 
 #if UBASIC_STRING
-struct strvariables_t {
-	char* val_adr;
-#if UBASIC_ARRAY
-//	char **adr;
-	char *adr;
-	int dim;
-#endif
-};
-
 static struct strvariables_t strvariables[MAX_VARNUM];
 static char str_buf[MAX_STRINGLEN+1];
 #endif
@@ -141,11 +92,10 @@ static char str_buf[MAX_STRINGLEN+1];
 static unsigned char ended;
 
 #if UBASIC_DATA
-struct data_ptr_t {
-	struct tokenizer_pos_t first;
-	struct tokenizer_pos_t current;
-} data_ptr = {{0,0},{0,0}};
+struct data_ptr_t data_ptr = {{0,0},{0,0}};
 #endif
+
+
 
 // Prototypen
 int expr(void);
@@ -363,7 +313,8 @@ term(void)
   op = tokenizer_token();
   while(op == TOKENIZER_ASTR  ||
 		op == TOKENIZER_SLASH ||
-		op == TOKENIZER_MOD) {
+		op == TOKENIZER_MOD   ||
+		op == TOKENIZER_MOD2) {
     tokenizer_next();
     f2 = factor();
     switch(op) {
@@ -373,6 +324,7 @@ term(void)
     case TOKENIZER_SLASH:
       f1 = f1 / f2;
       break;
+    case TOKENIZER_MOD2:
     case TOKENIZER_MOD:
       f1 = f1 % f2;
       break;
