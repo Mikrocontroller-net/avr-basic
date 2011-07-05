@@ -1288,7 +1288,9 @@ void ubasic_set_variable(struct varinfo_t var, int value) {
 struct varinfo_t ubasic_get_varinfo(void) {
 	struct varinfo_t var;
 	var.varnum = tokenizer_variable_num();
+#if UBASIC_ARRAY
 	var.idx = 0;
+#endif
 	if(var.varnum >= 0 && var.varnum < MAX_VARNUM) {
 #if UBASIC_ARRAY
 		// handelt es sich um ein Array?
@@ -1336,7 +1338,9 @@ char* ubasic_get_strvariable(struct varinfo_t var) {
 struct varinfo_t ubasic_get_strvarinfo(void) {
 	struct varinfo_t var;
 	var.varnum = tokenizer_variable_num();
+#if UBASIC_ARRAY
 	var.idx = 0;
+#endif
 	if(var.varnum >= 0 && var.varnum < MAX_VARNUM) {
 #if UBASIC_ARRAY
 		// handelt es sich um ein Array?

@@ -86,6 +86,7 @@ enum {
 /* 8bit-Addressierung */
 #define SFP_USES_8BIT
 
+#if TOKENIZER_FASTPARSER
 
 #if USE_PROGMEM
 unsigned char aucAVRBasic[] PROGMEM =	{ 
@@ -130,4 +131,5 @@ unsigned char aucAVRBasic[] = {
   0x34, 0xf4, 0xdf, 0xa4, 0xe0, 0x00, 0x2c, 0x00, 0x06
 };
 
+#endif
 #endif
