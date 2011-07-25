@@ -17,7 +17,7 @@ Beispielimplementationen: im jeweiligen Quellcode der Beispielimplemen-
     * Basic-Programme liegen im PROGMEM
     * Ein-/Ausgabe via serieller Schnittstelle
 
---> ubasic_avr_sd.c, Makefile_avr_sd
+--> ubasic_avr_sd.c, Makefile_avr_sd bzw. Makefile_arduino
     * fuer AVR
     * Basic-Programme liegen auf einer SD-Karte (entsp. Hardware er-
       forderlich)
@@ -37,6 +37,9 @@ Beispielimplementationen: im jeweiligen Quellcode der Beispielimplemen-
     * Linuxplattform
     * Basic-Programme liegen als Dateien vor
 
+--> ubasic_file.c, Makefile_mingw
+    * Windows (gcc etc. unter MinGW )
+    * Basic-Programme liegen als Dateien vor
 
 
 Unterverzeichnisse:
@@ -46,10 +49,13 @@ avr_basic/ --> Quellcode des Basic-Interpreters
 
 basic/     --> einige Basic-Testprogramme
 
-doku/      --> Dokumentation
+doku/      --> Dokumentation (OpenOffice und PDF)
 
 lc7981/    --> Zugriffsroutinen zur Ansteuerung von Grafik-
                displays mit LC7981-Controller (fuer AVR)
+
+ds1307/    --> Zugriffsroutinen zum Auslesen eines DS1307 (I2C-RTC;
+               fuer AVR)
 
 mem_check/ --> Routinen zur Berechnung des Speicherverbrauchs (fuer AVR)
 

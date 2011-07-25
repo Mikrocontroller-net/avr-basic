@@ -26,4 +26,16 @@ ubasic: $(OBJ)
 .PHONY: clean
 clean:
 	rm -rf $(BIN) *.o *.elf
+	
+.PHONY: pretty_code
+pretty_code:
+	rm -rf $(BIN) *.o *.elf
+	find */*.c -type f -print0 | xargs -0 fromdos -p
+	find */*.h -type f -print0 | xargs -0 fromdos -p
+	find */*.bas -type f -print0 | xargs -0 fromdos -p
+	fromdos -p Makefile*
+	fromdos -p *.h
+	fromdos -p *.c
+	find . -type f -print0 | xargs -0 chmod 644
 
+	

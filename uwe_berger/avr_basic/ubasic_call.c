@@ -52,7 +52,7 @@ callfunct_t callfunct[] = {
 #endif
 #if USE_AVR && RTC_DS1307
 	// Auslesen RTC DS1307
-    {"get_rtc",	.funct_ptr.IntFuncInt=get_DS1307,		INT_FUNC_INT},
+    {"get_rtc",	.funct_ptr.UCharFuncUChar=get_DS1307,	UCHAR_FUNC_UCHAR},
 #endif
 
     {"",		{NULL},									255}
@@ -160,6 +160,7 @@ int call_statement(void) {
 							callfunct[idx].funct_ptr.VoidFunc2IntChar(p1, p2, (char*)tokenizer_last_string_ptr());
 						#endif
 						break;
+			case UCHAR_FUNC_UCHAR: // <-- naja, koennte ins Auge gehen...
 			case INT_FUNC_INT: 
 						accept(TOKENIZER_COMMA);
 						p1=expr();

@@ -30,3 +30,13 @@ ubasic: $(OBJ)
 clean:
 	rm $(BIN) *.o 
 
+.PHONY: pretty_code
+pretty_code:
+	rm $(BIN) *.o 
+	find */*.c -type f -print0 | xargs -0 fromdos
+	find */*.h -type f -print0 | xargs -0 fromdos
+	find */*.bas -type f -print0 | xargs -0 fromdos
+	fromdos Makefile*
+	fromdos *.h
+	fromdos *.c
+	find . -type f -print0 | xargs -0 chmod 644

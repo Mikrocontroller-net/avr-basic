@@ -20,6 +20,7 @@
 #define VOID_FUNC_2INT		3
 #define VOID_FUNC_4INT		4
 #define VOID_FUNC_2INT_CHAR	5
+#define UCHAR_FUNC_UCHAR	6
 
 // Strukturdefinition fuer Funktionspointertabelle
 typedef struct {
@@ -36,6 +37,7 @@ typedef struct {
         void (*VoidFunc4Int)	(int, int, int, int);
         void (*VoidFunc2IntChar)(int, int, char*);
         int  (*IntFuncInt)		(int);
+        unsigned char  (*UCharFuncUChar)		(unsigned char);
       } funct_ptr;
       unsigned char typ;
 } callfunct_t;

@@ -31,8 +31,10 @@
 #if USE_AVR
 
 /*---------------------------------------------------------------------------*/
+#if AVR_EPEEK	
 int epeek_expression(void) {
-	int adr, r;
+	int r=0;
+	int adr;
 	
     accept(TOKENIZER_EPEEK);
     accept(TOKENIZER_LEFTPAREN);
@@ -41,8 +43,10 @@ int epeek_expression(void) {
     accept(TOKENIZER_RIGHTPAREN);
     return r;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
+#if AVR_ADC	
 int adc_expression() {
 	int r=0;
 	int channel;
@@ -74,8 +78,10 @@ int adc_expression() {
     accept(TOKENIZER_RIGHTPAREN);
     return r;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
+#if AVR_IN
 int pin_in_expression() {
 	int r=0;
 	const char *port;
@@ -119,8 +125,10 @@ int pin_in_expression() {
 		}
 	return r;
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
+#if AVR_DIR
 void dir_statement(void) {
 	const char *port;
 	char pin, val;
@@ -165,8 +173,10 @@ void dir_statement(void) {
 	}
 	//tokenizer_next();
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
+#if AVR_OUT
 void out_statement(void) {
 	char const *port;
 	char pin, val;
@@ -211,8 +221,10 @@ void out_statement(void) {
 	}
 	//tokenizer_next();
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
+#if AVR_EPOKE
 void epoke_statement(void)
 {
 	int adr, val;
@@ -225,15 +237,17 @@ void epoke_statement(void)
 	eeprom_write_byte((unsigned char *)adr, val);
 	//tokenizer_next();
 }
+#endif
 
 /*---------------------------------------------------------------------------*/
+#if AVR_WAIT
 void wait_statement(void) {
 	int delay;
-
 	accept(TOKENIZER_WAIT);
 	delay=expr();
 	for (int i=0; i<delay; i++) _delay_ms(1);
 	//tokenizer_next();
 }
+#endif
 
 #endif

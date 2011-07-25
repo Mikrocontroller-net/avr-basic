@@ -57,3 +57,13 @@ flash:
 
 ubasic_avr_sd_lc7981.o: ubasic_avr_sd_lc7981.c
 
+.PHONY: pretty_code
+pretty_code:
+	rm -f *.hex *.elf *.o *.d uart/*.o sd_card/*.o mem_check/*.o avr_basic/*.o lc7981/*.o
+	find */*.c -type f -print0 | xargs -0 fromdos -p
+	find */*.h -type f -print0 | xargs -0 fromdos -p
+	find */*.bas -type f -print0 | xargs -0 fromdos -p
+	fromdos -p Makefile*
+	fromdos -p *.h
+	fromdos -p *.c
+	find . -type f -print0 | xargs -0 chmod 644

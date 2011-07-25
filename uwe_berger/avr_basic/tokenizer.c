@@ -223,7 +223,7 @@ void jump_to_next_linenum(void) {
 }
 
 /*---------------------------------------------------------------------------*/
-#ifdef TOKENIZER_STANDARD
+#if TOKENIZER_STANDARD
 static int singlechar(void) {
 	if(GET_CONTENT_PROG_PTR == '\n') {
 		return TOKENIZER_CR;
