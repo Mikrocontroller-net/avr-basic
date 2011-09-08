@@ -1,0 +1,28 @@
+# 
+# Makefile fuer FastParser-BuildTool mit GCC
+# ------------------------------------------
+#            Uwe Berger; 2011
+#
+
+CC      = gcc
+CFLAGS  = -Wall -g 
+
+OBJ  = main.o  
+OBJ += nParseDataBuild.o
+OBJ += uParse.o
+BIN  = build_tool
+
+build_tool: $(OBJ)
+	$(CC) $(CFLAGS) -o $(BIN) *.o $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
+	
+	
+.PHONY: clean build_f build
+clean:
+	rm -rf $(BIN) *.o *.elf
+	
+
+build:
+	./$(BIN) -Ibasic_keywords.txt -Otokenizer_data.c -NAVRBasic -V -sf

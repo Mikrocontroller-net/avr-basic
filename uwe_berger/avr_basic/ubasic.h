@@ -75,7 +75,7 @@ struct for_state_t {
   int for_variable;
   int to;
   int step;
-  char downto;
+  unsigned char downto;
 };
 
 // Type-Definition Zeilennummern-Cache
@@ -125,7 +125,7 @@ struct data_ptr_t {
 };
 #endif
 
-int current_linenum;
+extern int current_linenum;
 
 void ubasic_init(PTR_TYPE program);
 void ubasic_run(void);

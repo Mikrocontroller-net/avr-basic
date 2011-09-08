@@ -25,13 +25,6 @@
 
 #if UBASIC_CVARS
 
-#define DEBUG 0
-#if DEBUG
-	#define DEBUG_PRINTF(...)  usart_write(__VA_ARGS__)
-#else
-	#define DEBUG_PRINTF(...)
-#endif
-
 //------------------------------------------
 // eine Testvariable in C...
 int va = 123;
@@ -51,7 +44,7 @@ cvars_t cvars[] = {
     {"", NULL}
 };
 
-int search_cvars(const char *var_name) {
+static int search_cvars(const char *var_name) {
 	int idx=0;
 	// Variablenname in Tabelle suchen
 #if USE_PROGMEM
@@ -85,9 +78,8 @@ void vpoke_statement(void) {
 	
 	accept(TOKENIZER_VPOKE);
     accept(TOKENIZER_LEFTPAREN);
-	// Funktionsname ermitteln
+	// Variablenname ermitteln
 	if(tokenizer_token() == TOKENIZER_STRING) {
-		DEBUG_PRINTF("funct_name: %s\n\r", tokenizer_last_string_ptr());
 		tokenizer_next();
 	}
 	idx=search_cvars(tokenizer_last_string_ptr());
@@ -106,20 +98,19 @@ int vpeek_expression(void) {
 	int idx=0;
 	int r=0;
 #if USE_PROGMEM	
-	int *var_temp;
+	int16_t *var_temp;
 #endif
 
 	accept(TOKENIZER_VPEEK);
 	// Parameterliste wird durch linke Klammer eingeleitet
     accept(TOKENIZER_LEFTPAREN);
-	// Funktionsname ermitteln
+	// Variablenname ermitteln
 	if(tokenizer_token() == TOKENIZER_STRING) {
-		DEBUG_PRINTF("funct_name: %s\n\r", tokenizer_last_string_ptr());
 		tokenizer_next();
 	}
 	idx=search_cvars(tokenizer_last_string_ptr());
 #if USE_PROGMEM
-	var_temp=(int *)pgm_read_word(&cvars[idx].pvar);
+	var_temp=(int16_t *)pgm_read_word(&cvars[idx].pvar);
 	r=*var_temp;
 #else	
 	r = *cvars[idx].pvar;

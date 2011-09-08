@@ -54,15 +54,15 @@
 	void set_ptr(long offset) {
 		ptr = offset;
 		fseek(f, offset, SEEK_SET);
-		c=fgetc(f);
+		c=(char)fgetc(f);
 	}
 	//------------------------------------------
 	void incr_ptr(void) {
 		ptr++;
-		c=fgetc(f);
+		c=(char)fgetc(f);
 	}
 	//------------------------------------------
 	char is_eof(void) {
-		return feof(f);	
+		return (char)feof(f);	
 	}
 #endif

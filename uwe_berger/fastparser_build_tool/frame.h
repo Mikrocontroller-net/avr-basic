@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, Adam Dunkels
+ * Copyright (c) 2011, Rene Böllhoff
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,50 +25,23 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * ------------------------------------------------------
- * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
- * ------------------------------------------------------
  */
-#ifndef __TOKENIZER_H__
-#define __TOKENIZER_H__
 
-#include "ubasic_config.h"
-#include "tokenizer_data.h"
-//#include "parser.h"
+    #ifndef __FRAME_H__
+      #define __FRAME_H__
 
-// Typ-Definition Token-Tabelle (Standard-Parser)
-struct keyword_token {
-#if USE_PROGMEM
-	// um via strxxx_P zugreifen zu koennen, muss eine feste Laenge vorgegeben werden
-	char keyword[MAX_KEYWORD_LEN+1];
-#else	
-	char *keyword;
-#endif
-  int token;
-};
+        // Rückgabewerte für Zeilenverarbeitung
+        #define PLF_OK   0
+        #define PLF_ERR  1
 
-// Typ-Definition Tokenizer-Position
-struct tokenizer_pos_t {
-	PTR_TYPE prog_ptr;
-	int token;
-};
+        // Typendefinition für Zeilenverarbeitungsfunktion
+        typedef char (* T_PROCESS_INPUT_LINE) (char *acLine);
 
+        // External-Deklaration des Zeilenverarbeitungsfunktionszeigers
+        extern T_PROCESS_INPUT_LINE pfProcessLine;
 
-void tokenizer_init(PTR_TYPE program);
-void tokenizer_next(void);
-int tokenizer_token(void);
-int tokenizer_num(void);
-int tokenizer_variable_num(void);
-const char * tokenizer_last_string_ptr(void);
-void tokenizer_set_num(int val);
-int tokenizer_finished(void);
-void tokenizer_error_print(int linenum, int error_nr);
-PTR_TYPE get_prog_text_pointer(void);
-struct tokenizer_pos_t tokenizer_get_position(void);
-void tokenizer_set_position(struct tokenizer_pos_t);
-void jump_to_prog_text_pointer(PTR_TYPE jump_ptr);
-void jump_to_next_linenum(void);
-void skip_all_whitespaces(void);
+        // Nach außen zugängliche Funktionen
+        void vExitLoop (void);
+        void vMainLoop (void);
 
-#endif /* __TOKENIZER_H__ */
+      #endif

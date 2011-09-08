@@ -70,6 +70,7 @@
 #endif
 
 PTR_TYPE program_ptr;
+int current_linenum;
 
 static struct gosub_stack_t gosub_stack[MAX_GOSUB_STACK_DEPTH];
 static int gosub_stack_ptr;
@@ -95,8 +96,6 @@ static unsigned char ended;
 struct data_ptr_t data_ptr = {{0,0},{0,0}};
 #endif
 
-
-
 // Prototypen
 int expr(void);
 static void line_statement(void);
@@ -112,9 +111,7 @@ static int strrelation(void);
 #endif
 
 /*---------------------------------------------------------------------------*/
-void
-ubasic_init(PTR_TYPE program)
-{
+void ubasic_init(PTR_TYPE program) {
 	unsigned char i;
 	program_ptr = program;
 	for_stack_ptr = gosub_stack_ptr = 0;
@@ -127,9 +124,7 @@ ubasic_init(PTR_TYPE program)
 	ended = 0;
 }
 /*---------------------------------------------------------------------------*/
-void
-ubasic_break(void)
-{
+void ubasic_break(void) {
 	#if BREAK_NOT_EXIT
 	// zum Ende der Basic-Zeile und Ende-Merker setzen
 	ended = 1;
@@ -140,9 +135,7 @@ ubasic_break(void)
 }
 
 /*---------------------------------------------------------------------------*/
-void
-accept(int token)
-{
+void accept(int token) {
   if(token != tokenizer_token()) {
     tokenizer_error_print(current_linenum, SYNTAX_ERROR);
     ubasic_break();
@@ -150,16 +143,12 @@ accept(int token)
   tokenizer_next();
 }
 /*---------------------------------------------------------------------------*/
-static int
-varfactor(void)
-{
+static int varfactor(void) {
   accept(TOKENIZER_VARIABLE);
   return ubasic_get_variable(ubasic_get_varinfo());
 }
 /*---------------------------------------------------------------------------*/
-static int
-factor(void)
-{
+static int factor(void) {
   int r=0;
   #if UBASIC_RND
   int b;
@@ -198,7 +187,7 @@ factor(void)
     accept(TOKENIZER_LEFTPAREN);
    	b = expr();
     #if USE_AVR
-		r = rand31_next() % (b+1);
+		r = (int) (rand31_next() % ((unsigned long) b + 1));
 	#else
 		r = rand() % (b+1);
 	#endif
@@ -220,7 +209,7 @@ factor(void)
   case TOKENIZER_LEN:
     accept(TOKENIZER_LEN);
     accept(TOKENIZER_LEFTPAREN);
-    r=strlen(strexpr());
+    r=(int)strlen(strexpr());
     accept(TOKENIZER_RIGHTPAREN);
     break;
     
@@ -303,9 +292,7 @@ factor(void)
   return r;
 }
 /*---------------------------------------------------------------------------*/
-static int
-term(void)
-{
+static int term(void) {
   int f1, f2;
   int op;
 
@@ -334,9 +321,7 @@ term(void)
   return f1;
 }
 /*---------------------------------------------------------------------------*/
-int
-expr(void)
-{
+int expr(void) {
   int t1, t2;
   int op;
   
@@ -392,9 +377,7 @@ expr(void)
   return t1;
 }
 /*---------------------------------------------------------------------------*/
-static int
-relation(void)
-{
+static int relation(void) {
   int r1, r2;
   int op;
   
@@ -437,9 +420,7 @@ relation(void)
   return r1;
 }
 /*---------------------------------------------------------------------------*/
-static void
-jump_linenum(int linenum)
-{
+static void jump_linenum(int linenum) {
 	
 #if USE_LINENUM_CACHE	
 	unsigned char i;
@@ -480,17 +461,13 @@ jump_linenum(int linenum)
 #endif
 }
 /*---------------------------------------------------------------------------*/
-static void
-goto_statement(void)
-{
+static void goto_statement(void) {
   accept(TOKENIZER_GOTO);
   jump_linenum(expr());
 }
 /*---------------------------------------------------------------------------*/
 #if UBASIC_PRINT
-static void
-print_statement(void)
-{
+static void print_statement(void) {
 	unsigned char nl;
 	int i, j;
 	accept(TOKENIZER_PRINT);
@@ -571,13 +548,13 @@ print_statement(void)
 	} while(tokenizer_token() != TOKENIZER_CR &&
 			tokenizer_token() != TOKENIZER_ENDOFINPUT);
 	// wenn "," oder ";" am Zeilenende, dann kein Zeilenvorschub
-	if (nl) PRINTF("\n\r");
+	if (nl) {
+		PRINTF("\n\r");
+	}
 }
 #endif
 /*---------------------------------------------------------------------------*/
-static void
-if_statement(void)
-{
+static void if_statement(void) {
 	int r, r1, lop;
 	unsigned char no_then=0;
   
@@ -639,9 +616,7 @@ if_statement(void)
 }
 
 /*---------------------------------------------------------------------------*/
-static void
-let_statement(void)
-{
+static void let_statement(void) {
 	struct varinfo_t var;
 #if UBASIC_STRING
 	unsigned char is_strvar;
@@ -666,10 +641,8 @@ let_statement(void)
 		ubasic_set_variable(var, expr());
 }
 /*---------------------------------------------------------------------------*/
-static void
-gosub_statement(void)
-{
-	int linenum;
+static void gosub_statement(void){
+	int linenum=0;
 	accept(TOKENIZER_GOSUB);
 	
 #if UBASIC_EXT_PROC
@@ -710,9 +683,7 @@ gosub_statement(void)
 	}
 }
 /*---------------------------------------------------------------------------*/
-static void
-return_statement(void)
-{
+static void return_statement(void) {
 	accept(TOKENIZER_RETURN);
 	if(gosub_stack_ptr > 0) {
 		gosub_stack_ptr--;
@@ -729,9 +700,7 @@ return_statement(void)
 	}
 }
 /*---------------------------------------------------------------------------*/
-static void
-next_statement(void)
-{
+static void next_statement(void) {
   struct varinfo_t var;
   
   accept(TOKENIZER_NEXT);
@@ -753,11 +722,9 @@ next_statement(void)
 
 }
 /*---------------------------------------------------------------------------*/
-static void
-for_statement(void)
-{
+static void for_statement(void) {
   int for_variable, to, step; 
-  unsigned char downto;
+  unsigned char downto=0;
   struct varinfo_t var;
   
   accept(TOKENIZER_FOR);
@@ -794,24 +761,19 @@ for_statement(void)
   }
 }
 /*---------------------------------------------------------------------------*/
-static void
-end_statement(void)
-{
+static void end_statement(void) {
 	accept(TOKENIZER_END);
 	ended = 1;
 }
 
 /*---------------------------------------------------------------------------*/
 #if UBASIC_REM
-static void
-rem_statement(void)
-{
+static void rem_statement(void) {
 	accept(TOKENIZER_REM);
 	// im if gekapselt wg. (z.B.) leere REM-Anweisung
 	if (tokenizer_token() != TOKENIZER_CR) jump_to_next_linenum();
 }
 #endif
-
 
 /*---------------------------------------------------------------------------*/
 #if UBASIC_RND
@@ -861,7 +823,7 @@ static void dim_statement(void) {
 		strvariables[var].dim=dim;
 		// wenn Speicher schon mal reserviert war, zuerst freigeben
 		if (!(strvariables[var].adr == NULL)) free(strvariables[var].adr);
-		strvariables[var].adr=malloc(dim * (MAX_STRINGLEN+1));
+		strvariables[var].adr=malloc((size_t)dim * (MAX_STRINGLEN+1));
 		for (i=0; i<dim; i++) strvariables[var].adr[i*(MAX_STRINGLEN+1)+1]=0;
 	} else
 #endif	
@@ -869,7 +831,7 @@ static void dim_statement(void) {
 		// Integerfelder anlegen/initialisieren
 		variables[var].dim=dim;
 		if (!(variables[var].adr == NULL)) free(variables[var].adr);
-		variables[var].adr=malloc(dim * sizeof(int));
+		variables[var].adr=malloc((size_t)dim * sizeof(int));
 		if (variables[var].adr == NULL	) {
 			tokenizer_error_print(current_linenum, OUT_OF_MEMORY);
 			ubasic_break();
@@ -1075,9 +1037,7 @@ static void restore_statement(void) {
 
 
 /*---------------------------------------------------------------------------*/
-static void
-statement(void)
-{
+static void statement(void) {
   int token;
   
   token = tokenizer_token();
@@ -1205,12 +1165,11 @@ statement(void)
   	PRINTF("-->%i\n\r", token);
     tokenizer_error_print(current_linenum, UNKNOWN_STATEMENT);
     ubasic_break();
+	break;
   }
 }
 /*---------------------------------------------------------------------------*/
-static void
-line_statement(void)
-{
+static void line_statement(void) {
 	if (tokenizer_token() != TOKENIZER_NUMBER && UBASIC_NO_LINENUM_ALLOWED) {
 		//....
 	} else {
@@ -1230,9 +1189,9 @@ line_statement(void)
 }
 /*---------------------------------------------------------------------------*/
 void ubasic_free_all_mem(void) {
-	unsigned char i;
 	// dynamischer RAM fuer Arrays und Zeichenketten
 #if UBASIC_ARRAY || UBASIC_STRING 
+	unsigned char i;
 	for (i=0; i<MAX_VARNUM; i++) {
 	#if UBASIC_ARRAY
 		if (variables[i].adr) free(variables[i].adr);
@@ -1252,9 +1211,7 @@ void ubasic_free_all_mem(void) {
 #endif		
 }
 /*---------------------------------------------------------------------------*/
-void
-ubasic_run(void)
-{
+void ubasic_run(void) {
 	if(tokenizer_finished()) {
 		return;
 	}
@@ -1318,7 +1275,7 @@ struct varinfo_t ubasic_get_varinfo(void) {
 
 #if UBASIC_STRING
 /*---------------------------------------------------------------------------*/
-char* ubasic_get_strvariable(struct varinfo_t var) {
+static char* ubasic_get_strvariable(struct varinfo_t var) {
 # if UBASIC_ARRAY
 	if (strvariables[var.varnum].adr)  
 		return &strvariables[var.varnum].adr[var.idx*(MAX_STRINGLEN + 1)];
@@ -1470,9 +1427,9 @@ unsigned char ubasic_is_strexpr() {
 }
 
 /*---------------------------------------------------------------------------*/
-char* strfactor(void) {
+static char* strfactor(void) {
 	char *r, *s;	
-	unsigned char c;
+	char c;
 	int l, i, o;
 	struct varinfo_t var;
 	r=0;
@@ -1506,7 +1463,7 @@ char* strfactor(void) {
 			s=strexpr();
 			accept(TOKENIZER_COMMA);
 			l=expr();
-			if (l>strlen(s)) r = s;
+			if (l>(int)strlen(s)) r = s;
 			else {
 				for (i=0; i<l; i++) {
 					str_buf[i] = s[i];
@@ -1523,10 +1480,10 @@ char* strfactor(void) {
 			s=strexpr();
 			accept(TOKENIZER_COMMA);
 			l=expr();
-			if (l>strlen(s)) r = s;
+			if (l>(int)strlen(s)) r = s;
 			else {
 				for (i=0; i<l; i++) {
-					str_buf[i] = s[strlen(s)-l+i];
+					str_buf[i] = s[(int)strlen(s)-l+i];
 				}
 				str_buf[i] = 0;
 				r=(char*)&str_buf[0];
@@ -1542,7 +1499,7 @@ char* strfactor(void) {
 			o=expr();
 			accept(TOKENIZER_COMMA);
 			l=expr();
-			if (l>(strlen(s)-o)) r = s;
+			if (l>((int)strlen(s)-o)) r = s;
 			else {
 				for (i=0; i<l; i++) {
 					str_buf[i] = s[o+i];
@@ -1574,7 +1531,7 @@ char* strfactor(void) {
 			}
 			str_buf[i]=0;
 			// String umdrehen
-			l=strlen(str_buf);
+			l=(int)strlen(str_buf);
 			for (i=0; i<l/2; i++) {
 				c=str_buf[i];
 				str_buf[i]=str_buf[l-i-1];
@@ -1589,7 +1546,7 @@ char* strfactor(void) {
 			accept(TOKENIZER_LEFTPAREN);
 			s=strexpr();
 			while (*s != '\0') {
-				if (islower (*s)) *s = toupper (*s);
+				if (islower (*s)) *s = (char)toupper (*s);
 				++s;
 			}
 			r=(char*)&str_buf[0];				
@@ -1601,7 +1558,7 @@ char* strfactor(void) {
 			accept(TOKENIZER_LEFTPAREN);
 			s=strexpr();
 			while (*s != '\0') {
-				if (isupper (*s)) *s = tolower (*s);
+				if (isupper (*s)) *s = (char)tolower (*s);
 				++s;
 			}
 			r=(char*)&str_buf[0];				
@@ -1623,12 +1580,12 @@ char* strexpr(void) {
 	
 	// Argument in lokalen Puffer kopieren
 	strcpy(s1, strfactor());
-	str_len = strlen(s1);
+	str_len = (int)strlen(s1);
 	op = tokenizer_token();
 	while(op == TOKENIZER_PLUS) {
 		tokenizer_next();
 		s2 = strfactor();
-		str_len = str_len + strlen(s2);
+		str_len = str_len + (int)strlen(s2);
 		if (str_len >= MAX_STRINGLEN+1) {
 			// Stringlaenge wird zu gross
 		    tokenizer_error_print(current_linenum, STRING_TO_LARGE);
