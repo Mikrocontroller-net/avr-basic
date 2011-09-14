@@ -76,6 +76,31 @@
 	char is_eof(void);
 #endif
 
+// Basic-Quelltext steht in einer Datei im externen DataFlash... (AVR)
+#if ACCESS_VIA_DF
+	// Definitionen
+	#define PTR_TYPE long int
+	#ifdef __TOKENIZER_ACCESS_C__
+		PTR_TYPE ptr;
+	#endif
+	#ifdef __TOKENIZER_C__	
+		extern PTR_TYPE ptr;
+	#endif
+	#ifdef __UBASIC_EXT_PROC_C__
+		extern PTR_TYPE ptr;
+	#endif
+	#define PROG_PTR 					ptr
+	#define GET_CONTENT_PROG_PTR		get_content()
+	#define SET_PROG_PTR_ABSOLUT(param)	set_ptr(param)
+	#define INCR_PROG_PTR				incr_ptr()
+	#define END_OF_PROG_TEXT			is_eof()
+	// Prototypen der Zugriffsroutinen
+	char get_content(void);
+	void set_ptr(PTR_TYPE offset);
+	void incr_ptr(void);
+	char is_eof(void);
+#endif
+
 // Basic-Quelltext steht in einer Datei... (Linux)
 #if ACCESS_VIA_FILE
 	// Definitionen

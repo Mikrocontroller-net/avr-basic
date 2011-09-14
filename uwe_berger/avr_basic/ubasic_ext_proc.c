@@ -114,7 +114,26 @@ char current_proc[MAX_PROG_NAME_LEN];
 			tokenizer_init(program_ptr);
 			strncpy(current_proc, p_name, MAX_PROG_NAME_LEN);
 		}
+	}
+#endif
 
+//**********************************************************************
+#if ACCESS_VIA_DF
+	#include "df/fs.h"
+	extern fs_t fs;
+	extern fs_inode_t prog_inode;
+	// Umschalten des Programm-Kontextes
+	void switch_proc(char *p_name) {
+		prog_inode = fs_get_inode(&fs, p_name);
+		if (prog_inode == 0xffff) {
+			tokenizer_error_print(current_linenum, UNKNOWN_SUBPROC);
+			ubasic_break();
+		} else {
+			PROG_PTR=0;
+			program_ptr=0;
+			tokenizer_init(program_ptr);
+			strncpy(current_proc, p_name, MAX_PROG_NAME_LEN);
+		}
 	}
 #endif
 

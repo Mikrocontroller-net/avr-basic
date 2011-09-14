@@ -13,6 +13,7 @@
 
 #include <avr/pgmspace.h>
 #include "avr_basic/ubasic_ext_proc.h"
+#include "avr_basic/ubasic_config.h"
 #include "ubasic_tests.h"
 
 
