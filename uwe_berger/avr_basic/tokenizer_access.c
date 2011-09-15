@@ -69,29 +69,45 @@
 
 #if ACCESS_VIA_DF
 	#include "df/fs.h"
-	#define BUF_LEN 400
+	#include <stdlib.h>
+	#define PROG_BUF_MAX_LEN 400
 	static unsigned char c;
 	fs_inode_t prog_inode;
-	static char buf[BUF_LEN];
-	static long int buf_min = 0;
-	static long int buf_max = 0;
+	static uint8_t *prog_buf;
+	static uint16_t prog_buf_len;
+	static long int prog_buf_min = 0;
+	static long int prog_buf_max = 0;
 	static long int file_size;
+	
+	//------------------------------------------
+	void create_prog_buf(int size)	 {
+		if (size > PROG_BUF_MAX_LEN) {
+			prog_buf_len=PROG_BUF_MAX_LEN;
+		} else {
+			prog_buf_len=size;
+		}
+		prog_buf=malloc(prog_buf_len);		
+	}
+	//------------------------------------------
+	void destroy_prog_buf(void)	 {
+		free(prog_buf);
+	}
 	//------------------------------------------
 	char fill_get_buf(long offset) {
 		long int s;
 		if (offset == 0) {
 			file_size = fs_size(&fs, prog_inode);
-			buf_min = 0;
-			buf_max = 0;
+			prog_buf_min = 0;
+			prog_buf_max = 0;
 		}
-		if ((buf_min == buf_max) || 
-		    (buf_min > offset) ||
-		    (buf_max < offset)) {
-				s=fs_read(&fs, prog_inode, buf, offset, BUF_LEN);
-				buf_min=offset;
-				buf_max=buf_min+s-1;
+		if ((prog_buf_min == prog_buf_max) || 
+		    (prog_buf_min > offset) ||
+		    (prog_buf_max < offset)) {
+				s=fs_read(&fs, prog_inode, prog_buf, offset, prog_buf_len);
+				prog_buf_min=offset;
+				prog_buf_max=prog_buf_min + s - 1;
 		}
-		return buf[offset-buf_min];
+		return prog_buf[offset - prog_buf_min];
 	}	
 	//------------------------------------------
 	char get_content(void) {

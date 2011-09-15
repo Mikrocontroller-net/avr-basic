@@ -64,6 +64,10 @@ int main(void)
 #if UBASIC_EXT_PROC
 	extern char current_proc[MAX_PROG_NAME_LEN];
 #endif
+
+//#if ACCESS_VIA_DF
+//	extern uint8_t *prog_buf;
+//#endif
 	
     usart_init(BAUDRATE); // setup the UART
     
@@ -174,7 +178,8 @@ int main(void)
 			if (prog_inode == 0xffff) {
 				usart_write("Error opening file %s!\n\r", command);			
 			} else {
-				#if 0
+				
+				#if 0 //Test...
 				SET_PROG_PTR_ABSOLUT(0);
 				while (!END_OF_PROG_TEXT) {
 					usart_write("%c", GET_CONTENT_PROG_PTR);
@@ -187,6 +192,12 @@ int main(void)
 				#if UBASIC_EXT_PROC
 					strncpy(current_proc, command, MAX_PROG_NAME_LEN);
 				#endif
+				
+				#if ACCESS_VIA_DF
+					// Speicher fuer Programmpuffer reservieren
+					create_prog_buf(fs_size(&fs, prog_inode));
+				#endif
+				
 				ubasic_init(0);
 				do {
 					time_row=0;
@@ -197,6 +208,12 @@ int main(void)
 						break;
 					}
 				} while(!ubasic_finished());
+				
+				#if ACCESS_VIA_DF
+					// Speicher fuer Programmpuffer freigeben
+					destroy_prog_buf();
+				#endif
+				
 				#endif
 			}
 		} else

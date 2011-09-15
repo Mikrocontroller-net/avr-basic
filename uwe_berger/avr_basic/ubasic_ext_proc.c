@@ -120,6 +120,7 @@ char current_proc[MAX_PROG_NAME_LEN];
 //**********************************************************************
 #if ACCESS_VIA_DF
 	#include "df/fs.h"
+	#include "tokenizer_access.h"
 	extern fs_t fs;
 	extern fs_inode_t prog_inode;
 	// Umschalten des Programm-Kontextes
@@ -129,6 +130,8 @@ char current_proc[MAX_PROG_NAME_LEN];
 			tokenizer_error_print(current_linenum, UNKNOWN_SUBPROC);
 			ubasic_break();
 		} else {
+			destroy_prog_buf();
+			create_prog_buf(fs_size(&fs, prog_inode));
 			PROG_PTR=0;
 			program_ptr=0;
 			tokenizer_init(program_ptr);

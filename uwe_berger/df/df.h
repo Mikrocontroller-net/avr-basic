@@ -27,6 +27,7 @@
 
 /* for AT45DB161B (older revision, without the low-speed mode,
  * define SUPPORT_AT45DB161B */
+//#define SUPPORT_AT45DB161B
 
 /* commands */
 #define DATAFLASH_MAIN_MEMORY_PAGE_READ 0xD2

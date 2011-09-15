@@ -99,6 +99,8 @@
 	void set_ptr(PTR_TYPE offset);
 	void incr_ptr(void);
 	char is_eof(void);
+	void create_prog_buf(int size);
+	void destroy_prog_buf(void);
 #endif
 
 // Basic-Quelltext steht in einer Datei... (Linux)
