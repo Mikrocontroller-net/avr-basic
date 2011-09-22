@@ -1,9 +1,20 @@
 /*----------------------------------------------------------------------------
-*             Testprogramm Zugriff auf ext. Dataflash 
-*             =======================================
-*               Uwe Berger (bergeruw@gmx.net); 2011
+*             Zugriff auf ext. Dataflash (etherrape)
+*             ======================================
+*              Uwe Berger (bergeruw@gmx.net); 2011
 * 
 *
+* "Shell"-Kommandos:
+* ------------------
+* l				alle vorhandenen Dateien auflisten
+* f				Dataflash formatieren
+* n				Testprogramme in Dataflash schreiben
+* r dateiname	BASIC-Programm starten
+* e dateiname	Datei editieren
+* c dateiname	Datei anzeigen
+* t				BASIC-Runtime anzeigen
+* m				SApeicherplatz anzeigen
+* 
 * ---------
 * Have fun!
 * 
@@ -24,13 +35,15 @@
 #include "df/fs.h"
 #include "df/common.h"
 
+#include "smed/smed.h"
+
 //Taktfrequenz
 #ifndef F_CPU
 #define F_CPU 20000000UL
 #endif
 
 //Baudrate der seriellen Schnittstelle
-#define BAUDRATE 57600
+#define BAUDRATE 57600UL
 
 extern fs_t fs;
 extern fs_inode_t prog_inode;
@@ -64,10 +77,6 @@ int main(void)
 #if UBASIC_EXT_PROC
 	extern char current_proc[MAX_PROG_NAME_LEN];
 #endif
-
-//#if ACCESS_VIA_DF
-//	extern uint8_t *prog_buf;
-//#endif
 	
     usart_init(BAUDRATE); // setup the UART
     
@@ -87,9 +96,6 @@ int main(void)
 
     usart_write("initializing filesystem...\r\n");
     fs_init();
-    //usart_write("fs: root page is 0x%x\r\n", fs.root);
-    //usart_write("done\r\n");
-	//usart_write("df status: 0x%x\r\n", df_status(NULL));
     usart_write("\r\n>");
 
 	// Hauptschleife    
@@ -170,6 +176,49 @@ int main(void)
 			}
 		} else
         
+		// Dateiinhalt auf externen Dataflash editieren
+		if (strncmp_P(command, PSTR("e "), 2) == 0) {
+			command += 2;
+			prog_inode = fs_get_inode(&fs, command);
+			if (prog_inode == 0xffff) {
+				usart_write("File %s not found, create? (y/n)", command);
+				if (usart_receive_char() == 'y') {
+					if (fs_create(&fs, command) == FS_OK) {
+						prog_inode = fs_get_inode(&fs, command);
+					}
+				}
+			}
+			if (prog_inode != 0xffff) {
+				extern char file_name[FILENAME_MAX_LEN+1];
+				extern uint8_t *edit_data;
+				strncpy(file_name, command, MAX_PROG_NAME_LEN);
+				edit_data=malloc(fs_size(&fs, prog_inode));
+				load_edit_data();
+				smed();
+				usart_write("Save chanches in %s? (y/n)", file_name);			
+				if (usart_receive_char() == 'y') {
+					save_edit_data();
+					usart_write(" Saved!\n\r");
+				} else {
+					usart_write(" No saved!\n\r");
+				}
+				free(edit_data);
+			}
+		} else
+		
+		// Datei auf externen Dataflash loeschen
+		if (strncmp_P(command, PSTR("d "), 2) == 0) {
+			command += 2;
+			usart_write("Delete file %s? (y/n)", command);
+			if (usart_receive_char() == 'y') {
+				if (fs_remove(&fs, command) == FS_OK) {
+					usart_write(" Deleted!\n\r");
+				} else {
+					usart_write(" Error by delete!\n\r");					
+				}
+			}
+		} else
+
 		// BASIC-Programm ausfuehren...
         if (strncmp_P(command, PSTR("r "), 2) == 0) {
 			usart_write("\r\n");

@@ -13,6 +13,8 @@ OBJECTS     += uart/usart.o
 OBJECTS     += avr_basic/ubasic.o avr_basic/ubasic_ext_proc.o avr_basic/tokenizer_access.o
 OBJECTS     += avr_basic/tokenizer.o avr_basic/ubasic_call.o  avr_basic/ubasic_avr.o
 OBJECTS     += avr_basic/ubasic_cvars.o ubasic_tests.o mem_check/mem_check.o
+OBJECTS     += mcurses/mcurses.o
+OBJECTS     += smed/smed.o
 OBJECTS     += df/df.o df/fs.o df/spi.o 
 
 #AVRDUDE_PROGRAMMER = arduino
@@ -44,7 +46,7 @@ all:	ubasic_etherrape.hex
 
 clean:
 	rm -f *.hex *.elf  *.o *.d df/*.o uart/*.o mem_check/*.o
-	rm -f avr_basic/*.o
+	rm -f avr_basic/*.o mcurses/*.o smed/*.o
 
 ubasic_etherrape.elf: $(MODULES)
 	$(LINK.o) -o $@ $(MODULES)

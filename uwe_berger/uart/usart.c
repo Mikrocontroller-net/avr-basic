@@ -1,49 +1,90 @@
 /*----------------------------------------------------------------------------
- Copyright:      Radig Ulrich  mailto: mail@ulrichradig.de
- Author:         Radig Ulrich
- Remarks:        
- known Problems: none
- Version:        24.10.2007
- Description:    RS232 Routinen
+ *	Routinen fuer serielle Schnittstelle
+ *  ====================================
+ * 
+ * Ideen von: Frank Meyer - frank(at)fli4l.de
+ *            Radig Ulrich  mail(at)ulrichradig.de
+ *------------------------------------------------------------------------------
+ */
 
- Dieses Programm ist freie Software. Sie können es unter den Bedingungen der 
- GNU General Public License, wie von der Free Software Foundation veröffentlicht, 
- weitergeben und/oder modifizieren, entweder gemäß Version 2 der Lizenz oder 
- (nach Ihrer Option) jeder späteren Version. 
-
- Die Veröffentlichung dieses Programms erfolgt in der Hoffnung, 
- daß es Ihnen von Nutzen sein wird, aber OHNE IRGENDEINE GARANTIE, 
- sogar ohne die implizite Garantie der MARKTREIFE oder der VERWENDBARKEIT 
- FÜR EINEN BESTIMMTEN ZWECK. Details finden Sie in der GNU General Public License. 
-
- Sie sollten eine Kopie der GNU General Public License zusammen mit diesem 
- Programm erhalten haben. 
- Falls nicht, schreiben Sie an die Free Software Foundation, 
- Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA. 
-------------------------------------------------------------------------------*/
 #include "usart.h"
 
+
+#include <util/setbaud.h>
+
+
+#define UART_TXBUFLEN                           64   // 64 Bytes ringbuffer for UART
+#define UART_RXBUFLEN                           16   // 16 Bytes ringbuffer for UART
+
+static volatile uint8_t uart_txbuf[UART_TXBUFLEN];   // tx ringbuffer
+static volatile uint8_t uart_txsize = 0;             // tx size
+static volatile uint8_t uart_rxbuf[UART_RXBUFLEN];   // rx ringbuffer
+static volatile uint8_t uart_rxsize = 0;  
 	
+
+
 //----------------------------------------------------------------------------
-//Init serielle Schnittstelle
-void usart_init(unsigned long baudrate) 
-{ 
-	//Serielle Schnittstelle 1
-  	//Enable TXEN im Register UCR TX-Data Enable
-	UCR =(1 << TXEN0 | 1 << RXEN0);
-	//Teiler wird gesetzt 
-	UBRR=(F_CPU / (baudrate * 16L) - 1);
+// UART interrupt handler (RX)
+ISR(UART0_RXC_vect)
+{
+	static uint8_t  uart_rxstop  = 0;    
+	uint8_t         ch;
+
+	ch = UART0_UDR;
+	if (uart_rxsize < UART_RXBUFLEN) {    
+		uart_rxbuf[uart_rxstop++] = ch;  
+		if (uart_rxstop >= UART_RXBUFLEN) uart_rxstop = 0;  
+		uart_rxsize++;     
+	}
 }
 
 //----------------------------------------------------------------------------
-//Routine für die Serielle Ausgabe eines Zeichens (Schnittstelle0)
-void usart_write_char(char c)
+// UART interrupt handler (TX)
+ISR(UART0_UDRE_vect)
 {
-	//Warten solange bis Zeichen gesendet wurde
-	while(!(USR & (1<<UDRE)));
-	//Ausgabe des Zeichens
-	UDR = c;
-	return;
+	static uint8_t  uart_txstart = 0;
+	uint8_t         ch;
+
+	if (uart_txsize > 0) {
+		ch = uart_txbuf[uart_txstart++];
+		if (uart_txstart == UART_TXBUFLEN) uart_txstart = 0;
+		uart_txsize--; 
+		UART0_UDR = ch;
+	} else {
+		UART0_UCSRB &= ~(1 << UART0_UDRIE);
+	}
+}
+
+
+//----------------------------------------------------------------------------
+//Init serielle Schnittstelle
+void usart_init(void) 
+{ 
+	UART0_UBRRH = UBRRH_VALUE;
+	UART0_UBRRL = UBRRL_VALUE;
+
+#if USE_2X
+	UART0_UCSRA |= (1<<UART0_U2X);
+#else
+	UART0_UCSRA &= ~(1<<UART0_U2X);
+#endif
+
+	UART0_UCSRC = UART0_UCSZ1_BIT_VALUE | UART0_UCSZ0_BIT_VALUE | UART0_URSEL_BIT_VALUE;
+	UART0_UCSRB |= UART0_TXEN_BIT_VALUE | UART0_RXEN_BIT_VALUE | UART0_RXCIE_BIT_VALUE; 
+}
+
+//----------------------------------------------------------------------------
+void usart_write_char(char ch)
+{
+	static uint8_t uart_txstop  = 0; 
+
+	while (uart_txsize >= UART_TXBUFLEN) ;
+	uart_txbuf[uart_txstop++] = ch;   
+	if (uart_txstop >= UART_TXBUFLEN) uart_txstop = 0;        
+	cli();
+	uart_txsize++;                
+	sei();
+	UART0_UCSRB |= (1 << UART0_UDRIE);   
 }
 
 //------------------------------------------------------------------------------
@@ -138,28 +179,42 @@ void usart_write_P (const char *Buffer,...)
 //Ausgabe eines Strings
 void usart_write_str(char *str)
 {
-	while (*str)
-	{
-		usart_write_char(*str++);
-	}
+	while (*str) usart_write_char(*str++);
 }
 
 //----------------------------------------------------------------------------
 //Empfang eines Zeichens
 unsigned char usart_receive_char( void )
 {
-  // Warten bis Zeichen vollstaendig
-  while ( !(UCSR0A & (1<<RXC0)) );
-  // Zeichen zurueckgeben
-  return UDR0;
+	static uint8_t  uart_rxstart = 0; 
+	uint8_t         ch;
+	
+	while (uart_rxsize == 0) {
+		;
+	}
+
+	ch = uart_rxbuf[uart_rxstart++];
+	if (uart_rxstart == UART_RXBUFLEN) uart_rxstart = 0;
+	cli();
+	uart_rxsize--;
+	sei();
+	return ch;
 }
 
 //----------------------------------------------------------------------------
 // return 1, wenn Zeichen empfangen wurde
 unsigned char usart_is_receive(void) 
 {
-	return (UCSR0A & (1<<RXC0));
+	if (uart_rxsize) return 1; else return 0;
 }
+
+//----------------------------------------------------------------------------
+// return 1, wenn noch nicht alle Zeichen gesendet
+unsigned char usart_tx_not_empty(void) 
+{
+	if (uart_txsize) return 1; else return 0;
+}
+
 //----------------------------------------------------------------------------
 uint8_t usart_read_line(char* buffer, uint8_t buffer_length)
 {

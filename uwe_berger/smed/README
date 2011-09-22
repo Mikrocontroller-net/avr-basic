@@ -1,0 +1,67 @@
+Kurzanleitung zu smed (small editor)
+====================================
+
+Was ist das?
+------------
+Es handelt sich um einen Full-Screen-Editor fuer VTxxx-Terminals. Die
+Bildschirmsteuerung erfolgt mit der ncurses-ähnlichen Bibliothek 
+mcurses von Frank Meyer.
+
+zu verwendende Funktionstasten:
+-------------------------------
+
+KEY_DOWN		Cursor runter
+KEY_UP			Cursor hoch
+KEY_LEFT		Cursor links
+KEY_RIGHT		Cursor rechts
+KEY_NPAGE		Bild (Seite) runter
+KEY_PPAGE		Bild (Seite) hoch
+KEY_CR			Enter					Zeilenumbruch
+KEY_TAB			Tabulator				fuegt Lerrzeichen ein
+KEY_DC			Entfernen				Zeichen loeschen
+KEY_BACKSPACE	Ruecktaste				vorhergehendes Zeichen loeschen
+KEY_IC			Einfuegen				ein Leerzeichen einfuegen
+KEY_HOME		Pos1					Cursor an den Anfang der Zeile
+KEY_END			Ende					Cursor ans Ende der Zeile
+KEY_F(9)		F9						Beendet Editor
+
+
+Integration in eigene Programme:
+--------------------------------
+Um smed bzw. vielmehr die Prozedure smed() aus smed.c in eigene 
+Programme einbinden zu können, sind einige "Schnittstellen", je nach
+Speichermedium der zu editierenden Texte, zu bedienen.
+
+Dazu ist im eigenen Programm ein Speicherberich zur Aufnahme des Inhalts
+des zu editierenden Textes anzulegen. 
+
+Weiterhin müssen einige Routinen,an die Gegebenheiten angepasst werden:
+
+load_edit_data() -->  laden des Dateiinhalts in den angelegten Speicher-
+                      bereich und setzen einiger Werte der Struktur
+                      edit_buf
+                      
+save_edit_data() -->  Ruecksichern des editierten Textes auf das Speicher-
+                      medium
+                      
+get_edit_data()  -->  Rueckgabe der uebergeben Stelle aus dem Speicher-
+                      bereich
+                      
+set_edit_data()  -->  die aktuelle Stelle (edit:buf.current_pos) im 
+                      Speicherbereich wir mit dem uebergebene Wert
+                      ueberschrieben
+                      
+insert_edit_data()--> Vergroesserung des Speicherbereichs um eine Stelle
+                      und Einfügen des uebergebenen Zeichens
+                      
+delete_edit_data()--> Loeschen eines Zeichens aus dem Speicherbereichs
+
+
+Beipiele sind im vorliegenden Quelltext (smed.c) zu finden.
+
+
+---------
+Have fun!
+
+
+Uwe Berger; 2011
