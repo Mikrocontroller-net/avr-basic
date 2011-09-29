@@ -195,7 +195,7 @@ int main(void)
 				edit_data=malloc(fs_size(&fs, prog_inode));
 				load_edit_data();
 				smed();
-				usart_write("Save chanches in %s? (y/n)", file_name);			
+				usart_write("Save changes in %s? (y/n)", file_name);			
 				if (usart_receive_char() == 'y') {
 					save_edit_data();
 					usart_write(" Saved!\n\r");

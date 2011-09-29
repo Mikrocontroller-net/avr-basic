@@ -144,8 +144,8 @@ void accept(int token) {
 }
 /*---------------------------------------------------------------------------*/
 static int varfactor(void) {
-  accept(TOKENIZER_VARIABLE);
-  return ubasic_get_variable(ubasic_get_varinfo());
+	//accept(TOKENIZER_VARIABLE);
+	return ubasic_get_variable(ubasic_get_varinfo());
 }
 /*---------------------------------------------------------------------------*/
 static int factor(void) {
@@ -623,12 +623,12 @@ static void let_statement(void) {
 	if (tokenizer_token() == TOKENIZER_VARIABLE) {
 		is_strvar = 0;
 #endif
-		accept(TOKENIZER_VARIABLE);
+		//accept(TOKENIZER_VARIABLE);
 		var = ubasic_get_varinfo();
 #if UBASIC_STRING
 	} else {
 		is_strvar = 1;
-		accept(TOKENIZER_STRINGVAR);
+		//accept(TOKENIZER_STRINGVAR);
 		var = ubasic_get_strvarinfo();
 	}
 #endif
@@ -704,7 +704,7 @@ static void next_statement(void) {
   struct varinfo_t var;
   
   accept(TOKENIZER_NEXT);
-  accept(TOKENIZER_VARIABLE);
+  //accept(TOKENIZER_VARIABLE);
   var = ubasic_get_varinfo();
   if(for_stack_ptr > 0 && var.varnum == for_stack[for_stack_ptr - 1].for_variable) {
     ubasic_set_variable(var, ubasic_get_variable(var) + for_stack[for_stack_ptr - 1].step);
@@ -728,7 +728,7 @@ static void for_statement(void) {
   struct varinfo_t var;
   
   accept(TOKENIZER_FOR);
-  accept(TOKENIZER_VARIABLE);
+  //accept(TOKENIZER_VARIABLE);
   var = ubasic_get_varinfo();
   for_variable = var.varnum;
   accept(TOKENIZER_EQ);
@@ -860,12 +860,12 @@ static void input_statement(void) {
 	}
 	do {
 		if (tokenizer_token()==TOKENIZER_VARIABLE) {
-			accept(TOKENIZER_VARIABLE);
+			//accept(TOKENIZER_VARIABLE);
 			GETLINE(buf_ptr, MAX_INPUT_LEN);
 			ubasic_set_variable(ubasic_get_varinfo(), atoi(buf));
 		#if UBASIC_STRING
 		} else if (tokenizer_token()==TOKENIZER_STRINGVAR) {
-			accept(TOKENIZER_STRINGVAR);
+			//accept(TOKENIZER_STRINGVAR);
 			GETLINE(buf_ptr, MAX_STRINGLEN);
 			ubasic_set_strvariable(ubasic_get_strvarinfo(), buf_ptr);
 		#endif	
@@ -1245,6 +1245,7 @@ void ubasic_set_variable(struct varinfo_t var, int value) {
 struct varinfo_t ubasic_get_varinfo(void) {
 	struct varinfo_t var;
 	var.varnum = tokenizer_variable_num();
+	accept(TOKENIZER_VARIABLE);
 #if UBASIC_ARRAY
 	var.idx = 0;
 #endif
@@ -1295,6 +1296,7 @@ static char* ubasic_get_strvariable(struct varinfo_t var) {
 struct varinfo_t ubasic_get_strvarinfo(void) {
 	struct varinfo_t var;
 	var.varnum = tokenizer_variable_num();
+	accept(TOKENIZER_STRINGVAR);
 #if UBASIC_ARRAY
 	var.idx = 0;
 #endif
@@ -1452,7 +1454,7 @@ static char* strfactor(void) {
 			break;
 			
 		case TOKENIZER_STRINGVAR:
-			accept(TOKENIZER_STRINGVAR);
+			//accept(TOKENIZER_STRINGVAR);
 			var = ubasic_get_strvarinfo();
 			r = ubasic_get_strvariable(var);
 			break;
