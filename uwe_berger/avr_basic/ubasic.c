@@ -378,46 +378,44 @@ int expr(void) {
 }
 /*---------------------------------------------------------------------------*/
 static int relation(void) {
-  int r1, r2;
-  int op;
-  
-  r1 = expr();
-  op = tokenizer_token();
-/*
-  while(op == TOKENIZER_LT ||
-		op == TOKENIZER_GT ||
-		op == TOKENIZER_GE ||
-		op == TOKENIZER_LE ||
-		op == TOKENIZER_NE ||
-		op == TOKENIZER_EQ) {
-*/
-    tokenizer_next();
-    r2 = expr();
-    switch(op) {
-    case TOKENIZER_LT:
-      r1 = r1 < r2;
-      break;
-    case TOKENIZER_GT:
-      r1 = r1 > r2;
-      break;
-    case TOKENIZER_EQ:
-      r1 = r1 == r2;
-      break;
-    case TOKENIZER_LE:
-      r1 = r1 <= r2;
-      break;
-    case TOKENIZER_GE:
-      r1 = r1 >= r2;
-      break;
-    case TOKENIZER_NE:
-      r1 = r1 != r2;
-      break;
-    }
-    op = tokenizer_token();
-/*
-  }
-*/
-  return r1;
+	int r1, r2;
+	int op;
+	
+	r1 = expr();
+	op = tokenizer_token();
+
+	// nur eine Expression?
+	if (op != TOKENIZER_LT &&
+		op != TOKENIZER_GT &&
+		op != TOKENIZER_GE &&
+		op != TOKENIZER_LE &&
+		op != TOKENIZER_NE &&
+		op != TOKENIZER_EQ) return r1;
+
+	tokenizer_next();
+	r2 = expr();
+	switch(op) {
+		case TOKENIZER_LT:
+			r1 = r1 < r2;
+			break;
+		case TOKENIZER_GT:
+			r1 = r1 > r2;
+			break;
+		case TOKENIZER_EQ:
+			r1 = r1 == r2;
+			break;
+		case TOKENIZER_LE:
+			r1 = r1 <= r2;
+			break;
+		case TOKENIZER_GE:
+			r1 = r1 >= r2;
+			break;
+		case TOKENIZER_NE:
+			r1 = r1 != r2;
+			break;
+	}
+	op = tokenizer_token();
+	return r1;
 }
 /*---------------------------------------------------------------------------*/
 static void jump_linenum(int linenum) {

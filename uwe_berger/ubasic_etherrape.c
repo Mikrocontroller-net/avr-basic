@@ -176,6 +176,44 @@ int main(void)
 			}
 		} else
         
+		// Dateiinhalt hexadezimal ausgeben (von externen Dataflash)
+		if (strncmp_P(command, PSTR("h "), 2) == 0) {
+			usart_write("\r\n");
+			command += 2;
+			fs_inode_t inode = fs_get_inode(&fs, command);
+			if (inode == 0xffff) {
+				usart_write("File %s not found!\r\n", command);			
+			} else {
+				fs_size_t offset = 0;
+				fs_size_t size, idx;
+				int i=0;
+				int j=0;
+				uint8_t *data = malloc(BUFF_LEN);
+				size = fs_read(&fs, inode, data, offset, BUFF_LEN);
+				usart_write("%5i: ", j);
+				while (size > 0) {
+					for (idx=0; idx<size; idx++) {
+						usart_write("%2x ", data[idx]);
+						i++;
+						j++;
+						if (i>15) {
+							usart_write("\n\r%5i: ", j);
+							i=0;
+						}
+					}
+					if (size == BUFF_LEN) {
+						offset=offset+size;
+						size = fs_read(&fs, inode, data, offset, BUFF_LEN);
+					} else {
+						size = 0;
+					} 
+				}
+				free(data);
+				usart_write("\n\r");
+				usart_write("\n\r%i", fs_size(&fs, inode));
+			}
+		} else
+
 		// Dateiinhalt auf externen Dataflash editieren
 		if (strncmp_P(command, PSTR("e "), 2) == 0) {
 			command += 2;
