@@ -26,9 +26,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * ------------------------------------------------------
- * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
- * ------------------------------------------------------
+ * ------------------------------------------------------------------
+ * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011, 2012
+ * ------------------------------------------------------------------
  */
 #ifndef __UBASIC_H__
 #define __UBASIC_H__
@@ -59,6 +59,7 @@
 #define STRING_TO_LARGE         21
 #define DATA_READ_TYPE_DIFF		22
 #define STRINGVAR_NOT_INIT		23
+#define POP_WITHOUT_PUSH		24
 
 
 // Typ-Definition gosub-Stack
@@ -124,6 +125,18 @@ struct data_ptr_t {
 	struct tokenizer_pos_t current;
 };
 #endif
+
+// Typ-Definition fuer Variablen-Stack (PUSH/POP)
+struct varstack_t {
+	struct varstack_t *next;
+	int val;
+};
+
+struct varstack_ptr_t {
+	struct varstack_t * start;
+	struct varstack_t * end;
+};
+
 
 extern int current_linenum;
 

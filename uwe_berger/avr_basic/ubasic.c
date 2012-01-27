@@ -26,9 +26,9 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * ------------------------------------------------------
- * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
- * ------------------------------------------------------
+ * ------------------------------------------------------------------
+ * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011, 2012
+ * ------------------------------------------------------------------
  */
 
 #include "tokenizer_access.h"
@@ -95,6 +95,10 @@ static unsigned char ended;
 #if UBASIC_DATA
 struct data_ptr_t data_ptr = {{0,0},{0,0}};
 #endif
+
+static struct varstack_t varstack;
+static int varstack_ptr;
+
 
 // Prototypen
 int expr(void);
@@ -1020,6 +1024,7 @@ static void read_statement(void) {
 	} while(tokenizer_token() != TOKENIZER_CR &&
 			tokenizer_token() != TOKENIZER_ENDOFINPUT);
 }
+
 /*---------------------------------------------------------------------------*/
 static void restore_statement(void) {
 	if (data_ptr.first.prog_ptr) {
@@ -1033,6 +1038,114 @@ static void restore_statement(void) {
 }
 #endif
 
+/*---------------------------------------------------------------------------*/
+/*
+void print_varstack(void) {
+    struct varstack_t *temp;
+	if (varstack_ptr > 0) {
+		temp=&varstack;
+		PRINTF ("-->%d\n", temp->val);
+		while (temp->next != NULL) {
+			temp=temp->next;
+			PRINTF ("-->%d\n", temp->val);
+		}
+    } else {
+		PRINTF ("-->Stack empty...\n\r");
+	} 
+}
+*/
+
+
+/*---------------------------------------------------------------------------*/
+void push_varstack(int value)
+{
+    struct varstack_t *new;
+    struct varstack_t *temp;
+	if (!varstack_ptr) {
+		// Stack leer...
+		varstack.val = value;
+		varstack.next=NULL;
+	} else {
+		// Stack hat mindesten schon ein Element
+		new = malloc(sizeof(*new)); // Speicher fuer neues Element
+		new->val = value;
+		new->next = NULL;
+		// letztes Element suchen...
+		temp=&varstack;
+		while (temp->next != NULL) {
+			temp=temp->next;
+		}
+		temp->next=new;
+	}
+	varstack_ptr++;
+}
+
+/*---------------------------------------------------------------------------*/
+static int pop_varstack(void) {
+    struct varstack_t *temp;
+    struct varstack_t *new_last;
+	int val;
+	if (varstack_ptr > 1) {
+		// mehr als ein Stackelement vorhanden -> Ende suchen
+		temp=&varstack;
+		while (temp->next != NULL) {
+			if (temp->next != NULL)	new_last=temp;
+			temp=temp->next;
+		}
+		val=temp->val;
+		// letztes Stackelement entfernen
+		new_last->next=NULL;
+		free(temp);
+	} else {
+		if (varstack_ptr == 1) {
+			varstack.next=NULL;	// ...sollte eigentlich schon so sein...
+			val=varstack.val;
+		} else {
+			// kein Stackelement vorhanden -> Fehler
+			tokenizer_error_print(current_linenum, POP_WITHOUT_PUSH);
+			ubasic_break();
+		}
+	}
+	varstack_ptr--;
+	return val;
+}
+
+/*---------------------------------------------------------------------------*/
+static void push_statement(void) {
+	accept(TOKENIZER_PUSH);
+	do {
+		push_varstack(expr());
+		if (tokenizer_token()==TOKENIZER_COMMA) tokenizer_next();
+		
+	} while(tokenizer_token() != TOKENIZER_CR &&
+			tokenizer_token() != TOKENIZER_ENDOFINPUT);
+//	PRINTF("-----Stack nach push----\n\r");
+//	print_varstack();
+//	PRINTF("------------------------\n\r");
+}
+
+
+/*---------------------------------------------------------------------------*/
+static void pop_statement(void) {
+	struct varinfo_t var;
+	accept(TOKENIZER_POP);
+	do {
+		if (tokenizer_token()==TOKENIZER_VARIABLE) {
+			var=ubasic_get_varinfo();
+			ubasic_set_variable(var, pop_varstack());			
+			tokenizer_next();
+
+		} else if (tokenizer_token()==TOKENIZER_COMMA) {
+			tokenizer_next();
+		} else {
+			break;
+		}
+	} while(tokenizer_token() != TOKENIZER_CR &&
+			tokenizer_token() != TOKENIZER_ENDOFINPUT);
+//	PRINTF("-----Stack nach pop----\n\r");
+//	print_varstack();
+//	PRINTF("------------------------\n\r");
+}
 
 /*---------------------------------------------------------------------------*/
 static void statement(void) {
@@ -1149,6 +1262,14 @@ static void statement(void) {
     break;
   #endif
 
+  case TOKENIZER_PUSH:
+    push_statement();
+    break;  
+  
+  case TOKENIZER_POP:
+    pop_statement();
+    break;  
+  
   case TOKENIZER_LET:
     accept(TOKENIZER_LET);
     /* Fall through. */
@@ -1205,6 +1326,8 @@ void ubasic_free_all_mem(void) {
 		strvariables[i].dim=0;
 		#endif
 	#endif
+	// push/pop-Stack leeren
+	while (varstack_ptr) pop_varstack();
 	}
 #endif		
 }

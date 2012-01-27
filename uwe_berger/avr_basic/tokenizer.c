@@ -26,10 +26,10 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * ------------------------------------------------------
- * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011
+ * ------------------------------------------------------------------
+ * Source modified by Uwe Berger (bergeruw@gmx.net); 2010, 2011, 2012
  * FastParser created by Rene Boellhoff; 2011
- * ------------------------------------------------------
+ * ------------------------------------------------------------------
  */
 
 
@@ -175,6 +175,8 @@ static const struct keyword_token keywords[] = {
 	{">=", TOKENIZER_GE},
 	{"<>", TOKENIZER_NE},
 	{"tab", TOKENIZER_TAB},
+	{"push", TOKENIZER_PUSH},
+	{"pop", TOKENIZER_POP},
 	{"", TOKENIZER_ERROR}
 };
 #endif
